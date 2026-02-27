@@ -1,0 +1,932 @@
+import { useState } from "react";
+
+/* ══════════════════════════════════════════════════════════════
+   TRANSLATIONS  (UI strings only — analysis text is generated
+   by the AI in the chosen language)
+══════════════════════════════════════════════════════════════ */
+const T = {
+  es: {
+    subtitle:"Terminal de Inteligencia Bursátil",searchLabel:"— Introduce el ticker bursátil",
+    analyzeBtn:"▶ Analizar",analyzing:"Analizando...",processingData:"Procesando datos de mercado",
+    downloadPdf:"⤓ Descargar PDF",reportGenerated:"INFORME GENERADO",liveAnalysis:"ANÁLISIS EN VIVO",
+    phases:["Ejecutando búsquedas de mercado en tiempo real...","Buscando datos de precio y 52 semanas...","Buscando dividendos históricos...","Buscando balance y estructura financiera...","Analizando contexto macroeconómico...","Evaluando fundamentos...","Procesando señales técnicas...","Calculando niveles operativos...","Evaluando fiabilidad de los datos...","Generando informe final..."],
+    macroLbl:"Macro",fundLbl:"Fundamental",techLbl:"Técnico",genLbl:"General",
+    priceTitle:"Precio & Niveles Operativos",macroTitle:"Macroeconómico",fundTitle:"Fundamental",techTitle:"Técnico",confTitle:"Fiabilidad del Análisis",
+    currentPrice:"Precio actual",vsYest:"vs cierre anterior",
+    aiNote:"Dato obtenido vía búsqueda web en tiempo real.\nVerifica siempre en tu broker antes de operar.",
+    range52:"Rango 52 semanas + Niveles operativos",min52:"Mín. 52W",max52:"Máx. 52W",
+    legCurrent:"Precio actual",legEntry:"Zona entrada",legTP:"Take Profit",legSL:"Stop Loss",
+    entryZone:"Zona de Entrada",tpLabel:"Take Profit",slLabel:"Stop Loss",
+    badgeEntry:"ENTRADA",badgeTP:"OBJETIVO",badgeSL:"PROTECCIÓN",
+    vsPrice:"vs precio",potential:"potencial",risk:"riesgo",
+    opRat:"▸ RAZONAMIENTO OPERATIVO · ",
+    histMetrics:"─── MÉTRICAS HISTÓRICAS 5 AÑOS",finStruct:"─── ESTRUCTURA FINANCIERA 5 AÑOS",
+    dyTitle:"Rentabilidad por Dividendo",dySub:"Dividend Yield anual · últimos 5 años",
+    dgTitle:"Crecimiento del Dividendo",dgSub:"Variación % del dividendo vs año anterior",
+    prTitle:"Payout Ratio",prSub:"% del beneficio distribuido como dividendo",
+    soTitle:"Acciones en Circulación",soSub:"Shares outstanding · evolución últimos 5 años",
+    ndTitle:"Deuda Neta",ndSub:"Deuda neta en millones (positivo = deuda > caja)",
+    ncTitle:"Caja & Equivalentes",ncSub:"Cash total en millones · últimos 5 años",
+    reliab:"FIABILIDAD DEL DATO",
+    confIntro:"Puntuación de 1–10 sobre la veracidad de cada campo. Alta = dato encontrado en web confirmado. Baja = estimación o sin fuente directa. Los niveles operativos siempre son estimaciones analíticas.",
+    cfld:"Campo",cscr:"Puntuación",cbar:"Fiabilidad",cnote:"Nota",
+    flds:{price_data:"Precio & Datos de Mercado",macro:"Análisis Macroeconómico",fundamental:"Análisis Fundamental",technical:"Análisis Técnico",dividend_data:"Dividendo (5 años)",debt_cash_data:"Deuda & Caja (5 años)",shares_data:"Acciones en Circulación (5 años)",trading_levels:"Niveles Operativos"},
+    icons:{price_data:"💰",macro:"🌍",fundamental:"📊",technical:"📈",dividend_data:"💸",debt_cash_data:"🏦",shares_data:"🔢",trading_levels:"🎯"},
+    bull:"Alcista",bear:"Bajista",neutral:"Neutro",
+    errCrypto:"🪙  Análisis de criptomonedas no disponible\n\nEsta aplicación está diseñada para renta variable (acciones y ETFs). Las criptomonedas no están incluidas.\n\nPrueba con: AAPL · MSFT · NVDA · TSLA · SAN · IBE · AMZN",
+    errInvalid:(t)=>`⚠  Ticker no reconocido: "${t}"\n\nNo se ha encontrado ninguna empresa cotizada con ese símbolo. Comprueba el ticker en Google Finance o en tu broker.\n\nEjemplos válidos: AAPL · MSFT · NVDA · TSLA · SAN · IBE · REP`,
+    errRate:(r)=>`⏱  Límite de uso alcanzado\n\nSe ha superado la cuota de solicitudes permitidas (ventana de 5 horas). Es un límite del sistema, no un error de la app.\n\n${r?`🔄 Restablecimiento estimado a las ${r}.`:"🔄 Inténtalo de nuevo en unos minutos."}`,
+    errGen:(t,m)=>`No se pudo completar el análisis de "${t}".\n\n${m}`,
+    foot:"Análisis generado por IA con búsqueda web en tiempo real · Los precios y métricas históricas pueden tener desfase · No constituye asesoramiento financiero · Verifica en fuentes oficiales antes de invertir",
+    noData:"Sin datos disponibles",dataSources:"FUENTES CONSULTADAS",
+  },
+  pt: {
+    subtitle:"Terminal de Inteligência Bolsista",searchLabel:"— Introduza o ticker bolsista",
+    analyzeBtn:"▶ Analisar",analyzing:"A analisar...",processingData:"A processar dados de mercado",
+    downloadPdf:"⤓ Descarregar PDF",reportGenerated:"RELATÓRIO GERADO",liveAnalysis:"ANÁLISE AO VIVO",
+    phases:["A executar pesquisas de mercado em tempo real...","A procurar preço e intervalo de 52 semanas...","A pesquisar dividendos históricos...","A pesquisar balanço e estrutura financeira...","A analisar contexto macroeconómico...","A avaliar fundamentos...","A processar sinais técnicos...","A calcular níveis operacionais...","A avaliar fiabilidade dos dados...","A gerar relatório final..."],
+    macroLbl:"Macro",fundLbl:"Fundamental",techLbl:"Técnico",genLbl:"Geral",
+    priceTitle:"Preço & Níveis Operacionais",macroTitle:"Macroeconómico",fundTitle:"Fundamental",techTitle:"Técnico",confTitle:"Fiabilidade da Análise",
+    currentPrice:"Preço atual",vsYest:"vs fecho anterior",
+    aiNote:"Dado obtido via pesquisa web em tempo real.\nVerifique sempre no seu broker antes de operar.",
+    range52:"Intervalo 52 semanas + Níveis operacionais",min52:"Mín. 52S",max52:"Máx. 52S",
+    legCurrent:"Preço atual",legEntry:"Zona entrada",legTP:"Take Profit",legSL:"Stop Loss",
+    entryZone:"Zona de Entrada",tpLabel:"Take Profit",slLabel:"Stop Loss",
+    badgeEntry:"ENTRADA",badgeTP:"OBJETIVO",badgeSL:"PROTEÇÃO",
+    vsPrice:"vs preço",potential:"potencial",risk:"risco",
+    opRat:"▸ RACIOCÍNIO OPERACIONAL · ",
+    histMetrics:"─── MÉTRICAS HISTÓRICAS 5 ANOS",finStruct:"─── ESTRUTURA FINANCEIRA 5 ANOS",
+    dyTitle:"Rentabilidade por Dividendo",dySub:"Dividend Yield anual · últimos 5 anos",
+    dgTitle:"Crescimento do Dividendo",dgSub:"Variação % do dividendo vs ano anterior",
+    prTitle:"Payout Ratio",prSub:"% do lucro distribuído como dividendo",
+    soTitle:"Ações em Circulação",soSub:"Shares outstanding · evolução últimos 5 anos",
+    ndTitle:"Dívida Líquida",ndSub:"Dívida líquida em milhões (positivo = dívida > caixa)",
+    ncTitle:"Caixa & Equivalentes",ncSub:"Cash total em milhões · últimos 5 anos",
+    reliab:"FIABILIDADE DO DADO",
+    confIntro:"Pontuação de 1–10 sobre a veracidade de cada campo. Alta = dado encontrado e confirmado na web. Baixa = estimativa ou sem fonte direta. Os níveis operacionais são sempre estimativas analíticas.",
+    cfld:"Campo",cscr:"Pontuação",cbar:"Fiabilidade",cnote:"Nota",
+    flds:{price_data:"Preço & Dados de Mercado",macro:"Análise Macroeconómica",fundamental:"Análise Fundamental",technical:"Análise Técnica",dividend_data:"Dividendo (5 anos)",debt_cash_data:"Dívida & Caixa (5 anos)",shares_data:"Ações em Circulação (5 anos)",trading_levels:"Níveis Operacionais"},
+    icons:{price_data:"💰",macro:"🌍",fundamental:"📊",technical:"📈",dividend_data:"💸",debt_cash_data:"🏦",shares_data:"🔢",trading_levels:"🎯"},
+    bull:"Alta",bear:"Baixa",neutral:"Neutro",
+    errCrypto:"🪙  Análise de criptomoedas não disponível\n\nEsta aplicação destina-se a ações e ETFs cotados em bolsa. As criptomoedas não estão incluídas.\n\nExperimente: AAPL · MSFT · NVDA · TSLA · EDP · GALP · NOS",
+    errInvalid:(t)=>`⚠  Ticker não reconhecido: "${t}"\n\nNão foi encontrada nenhuma empresa cotada com esse símbolo. Verifique o ticker no Google Finance ou no seu broker.\n\nExemplos válidos: AAPL · MSFT · NVDA · TSLA · EDP · GALP · NOS`,
+    errRate:(r)=>`⏱  Limite de utilização atingido\n\nFoi ultrapassada a quota de pedidos permitidos (janela de 5 horas). É um limite do sistema, não um erro da aplicação.\n\n${r?`🔄 Reposição estimada às ${r}.`:"🔄 Tente novamente dentro de alguns minutos."}`,
+    errGen:(t,m)=>`Não foi possível concluir a análise de "${t}".\n\n${m}`,
+    foot:"Análise gerada por IA com pesquisa web em tempo real · Preços e métricas históricas podem ter desfasamento · Não constitui aconselhamento financeiro · Verifique em fontes oficiais antes de investir",
+    noData:"Sem dados disponíveis",dataSources:"FONTES CONSULTADAS",
+  },
+  en: {
+    subtitle:"Stock Market Intelligence Terminal",searchLabel:"— Enter a stock ticker",
+    analyzeBtn:"▶ Analyze",analyzing:"Analyzing...",processingData:"Processing market data",
+    downloadPdf:"⤓ Download PDF",reportGenerated:"REPORT GENERATED",liveAnalysis:"LIVE ANALYSIS",
+    phases:["Running real-time market searches...","Fetching price & 52-week range...","Fetching historical dividends...","Fetching balance sheet & financial structure...","Analyzing macroeconomic context...","Evaluating fundamentals...","Processing technical signals...","Calculating trading levels...","Assessing data reliability...","Generating final report..."],
+    macroLbl:"Macro",fundLbl:"Fundamental",techLbl:"Technical",genLbl:"Overall",
+    priceTitle:"Price & Trading Levels",macroTitle:"Macroeconomic",fundTitle:"Fundamental",techTitle:"Technical",confTitle:"Analysis Reliability",
+    currentPrice:"Current price",vsYest:"vs previous close",
+    aiNote:"Data retrieved via real-time web search.\nAlways verify with your broker before trading.",
+    range52:"52-week range + Trading levels",min52:"52W Low",max52:"52W High",
+    legCurrent:"Current price",legEntry:"Entry zone",legTP:"Take Profit",legSL:"Stop Loss",
+    entryZone:"Entry Zone",tpLabel:"Take Profit",slLabel:"Stop Loss",
+    badgeEntry:"ENTRY",badgeTP:"TARGET",badgeSL:"PROTECTION",
+    vsPrice:"vs price",potential:"upside",risk:"risk",
+    opRat:"▸ TRADING RATIONALE · ",
+    histMetrics:"─── 5-YEAR HISTORICAL METRICS",finStruct:"─── 5-YEAR FINANCIAL STRUCTURE",
+    dyTitle:"Dividend Yield",dySub:"Annual dividend yield · last 5 years",
+    dgTitle:"Dividend Growth",dgSub:"% change in dividend vs prior year",
+    prTitle:"Payout Ratio",prSub:"% of earnings paid as dividend",
+    soTitle:"Shares Outstanding",soSub:"Shares outstanding · 5-year evolution",
+    ndTitle:"Net Debt",ndSub:"Net debt in millions (positive = debt > cash)",
+    ncTitle:"Cash & Equivalents",ncSub:"Total cash in millions · last 5 years",
+    reliab:"DATA RELIABILITY",
+    confIntro:"Score 1–10 on the accuracy of each field. High = confirmed from web sources. Low = estimate or no direct source found. Trading levels are always analytical estimates.",
+    cfld:"Field",cscr:"Score",cbar:"Reliability",cnote:"Note",
+    flds:{price_data:"Price & Market Data",macro:"Macroeconomic Analysis",fundamental:"Fundamental Analysis",technical:"Technical Analysis",dividend_data:"Dividend Data (5 years)",debt_cash_data:"Debt & Cash (5 years)",shares_data:"Shares Outstanding (5 years)",trading_levels:"Trading Levels"},
+    icons:{price_data:"💰",macro:"🌍",fundamental:"📊",technical:"📈",dividend_data:"💸",debt_cash_data:"🏦",shares_data:"🔢",trading_levels:"🎯"},
+    bull:"Bullish",bear:"Bearish",neutral:"Neutral",
+    errCrypto:"🪙  Cryptocurrency analysis not available\n\nThis app is designed for listed equities and ETFs only.\n\nTry: AAPL · MSFT · NVDA · TSLA · AMZN · META · GOOGL",
+    errInvalid:(t)=>`⚠  Unrecognized ticker: "${t}"\n\nNo listed company found with that symbol. Check the ticker on Google Finance or your broker.\n\nValid examples: AAPL · MSFT · NVDA · TSLA · AMZN · META · GOOGL`,
+    errRate:(r)=>`⏱  Usage limit reached\n\nThe request quota for the 5-hour window has been exceeded. This is a system limit, not an app error.\n\n${r?`🔄 Estimated reset at ${r}.`:"🔄 Please try again in a few minutes."}`,
+    errGen:(t,m)=>`Could not complete the analysis for "${t}".\n\n${m}`,
+    foot:"AI-generated analysis with real-time web search · Prices and historical metrics may have a time lag · Not financial advice · Always verify in official sources before investing",
+    noData:"No data available",dataSources:"SOURCES CONSULTED",
+  },
+};
+
+/* ══════════════════════════════════════════════════════════════
+   CRYPTO BLOCK LIST  (pre-flight check, no API call needed)
+══════════════════════════════════════════════════════════════ */
+const CRYPTOS = new Set([
+  "BTC","ETH","BNB","XRP","ADA","SOL","DOGE","DOT","MATIC","LTC","AVAX","LINK",
+  "UNI","ATOM","XLM","VET","ICP","FIL","TRX","ETC","ALGO","MANA","SAND","AXS",
+  "THETA","FTM","HBAR","EGLD","NEAR","ONE","FLOW","ROSE","KLAY","ENJ","CHZ",
+  "BAT","ZIL","HOT","CELO","QTUM","WAVES","XTZ","DASH","ZEC","EOS","BCH","BSV",
+  "XMR","NEO","IOTA","LUNA","UST","USDT","USDC","BUSD","DAI","SHIB","PEPE","WIF",
+  "BONK","SUI","APT","ARB","OP","INJ","SEI","TIA","PYTH","JTO","STRK",
+  "BTCUSDT","ETHUSDT","BNBUSDT","SOLUSDT",
+]);
+
+/* ══════════════════════════════════════════════════════════════
+   STYLES
+══════════════════════════════════════════════════════════════ */
+const CSS = `
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;700&family=Bebas+Neue&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#070a0e;--bg2:#0d1117;--bg3:#111820;
+    --border:#1e2d3d;
+    --a1:#00d4aa;--a2:#f59e0b;--a3:#3b82f6;--a4:#a78bfa;
+    --red:#ef4444;
+    --tx:#e2e8f0;--tx2:#94a3b8;--tx3:#475569;
+    --glow:0 0 20px rgba(0,212,170,.15);
+  }
+  body{background:var(--bg);color:var(--tx);font-family:'IBM Plex Mono',monospace}
+  .app{min-height:100vh;background:var(--bg);position:relative;overflow-x:hidden}
+  .grid{position:fixed;inset:0;background-image:linear-gradient(rgba(0,212,170,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,170,.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
+  .wrap{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:40px 24px}
+
+  /* HEADER */
+  .hdr{display:flex;align-items:center;gap:16px;margin-bottom:48px;flex-wrap:wrap}
+  .logo{width:44px;height:44px;background:var(--a1);clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue';font-size:18px;color:var(--bg);flex-shrink:0}
+  .logo-t{font-family:'Bebas Neue';font-size:28px;letter-spacing:4px;color:var(--tx)}
+  .logo-s{font-size:10px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-top:-4px}
+  .hdr-r{margin-left:auto;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  .pulse{width:6px;height:6px;border-radius:50%;background:var(--a1);animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+  .live-txt{font-size:10px;color:var(--tx3);letter-spacing:2px}
+
+  /* LANG */
+  .lang-sw{display:flex;gap:0;align-items:center;background:var(--bg3);border:1px solid var(--border);border-radius:6px;overflow:hidden}
+  .lang-btn{background:none;border:none;border-right:1px solid var(--border);cursor:pointer;padding:6px 10px;font-size:18px;transition:all .2s;opacity:.4;line-height:1;display:flex;align-items:center;gap:5px}
+  .lang-btn:last-child{border-right:none}
+  .lang-btn:hover{opacity:.75;background:rgba(255,255,255,.04)}
+  .lang-btn.active{opacity:1;background:rgba(0,212,170,.12)}
+  .lang-code{font-size:9px;color:var(--tx3);letter-spacing:1px;font-family:'IBM Plex Mono'}
+  .lang-btn.active .lang-code{color:var(--a1)}
+
+  /* SEARCH */
+  .srch{margin-bottom:40px}
+  .srch-lbl{font-size:10px;color:var(--a1);letter-spacing:3px;text-transform:uppercase;margin-bottom:12px}
+  .srch-row{display:flex;gap:12px;flex-wrap:wrap}
+  .ticker-in{flex:1;max-width:240px;background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:14px 20px;font-family:'IBM Plex Mono';font-size:22px;font-weight:700;color:var(--a1);letter-spacing:4px;text-transform:uppercase;outline:none;transition:all .2s}
+  .ticker-in::placeholder{color:var(--tx3);font-weight:300;letter-spacing:2px;font-size:16px}
+  .ticker-in:focus{border-color:var(--a1);box-shadow:var(--glow)}
+  .go-btn{background:var(--a1);color:var(--bg);border:none;border-radius:4px;padding:14px 32px;font-family:'IBM Plex Mono';font-size:13px;font-weight:700;letter-spacing:2px;cursor:pointer;transition:all .2s;text-transform:uppercase;white-space:nowrap}
+  .go-btn:hover:not(:disabled){background:#00f5c0;transform:translateY(-1px);box-shadow:0 4px 20px rgba(0,212,170,.4)}
+  .go-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+
+  /* LOADING */
+  .ld{padding:60px 0;text-align:center}
+  .ld-tkr{font-family:'Bebas Neue';font-size:80px;color:var(--a1);opacity:.12;letter-spacing:8px}
+  .ld-bars{display:flex;gap:4px;justify-content:center;margin:24px 0}
+  .ld-b{width:3px;background:var(--a1);border-radius:2px;animation:ba 1.2s ease-in-out infinite}
+  .ld-b:nth-child(1){height:20px;animation-delay:0s}.ld-b:nth-child(2){height:35px;animation-delay:.1s}.ld-b:nth-child(3){height:25px;animation-delay:.2s}.ld-b:nth-child(4){height:40px;animation-delay:.3s}.ld-b:nth-child(5){height:20px;animation-delay:.4s}.ld-b:nth-child(6){height:30px;animation-delay:.5s}.ld-b:nth-child(7){height:15px;animation-delay:.6s}
+  @keyframes ba{0%,100%{opacity:.3;transform:scaleY(.6)}50%{opacity:1;transform:scaleY(1)}}
+  .ld-txt{font-size:11px;color:var(--tx3);letter-spacing:3px;text-transform:uppercase}
+  .ld-ph{font-size:13px;color:var(--a1);letter-spacing:1px;margin-top:8px}
+
+  /* ERRORS */
+  .err{border-radius:6px;padding:24px 28px;font-size:13px;line-height:1.9;white-space:pre-line;font-family:'IBM Plex Sans',sans-serif}
+  .err-gen{background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.28);color:var(--red)}
+  .err-cryp{background:rgba(167,139,250,.07);border:1px solid rgba(167,139,250,.28);color:var(--a4)}
+  .err-inv{background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.28);color:var(--a2)}
+  .err-rate{background:rgba(59,130,246,.07);border:1px solid rgba(59,130,246,.28);color:var(--a3)}
+
+  /* RESULTS HDR */
+  .res-hdr{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:28px;flex-wrap:wrap;gap:16px}
+  .big-tkr{font-family:'Bebas Neue';font-size:72px;color:var(--a1);letter-spacing:4px;line-height:1}
+  .co-name{font-family:'IBM Plex Sans';font-size:16px;color:var(--tx2);margin-top:4px}
+  .co-meta{font-size:11px;color:var(--tx3);letter-spacing:2px;margin-top:4px}
+  .dl-btn{background:transparent;color:var(--a2);border:1px solid var(--a2);border-radius:4px;padding:10px 20px;font-family:'IBM Plex Mono';font-size:11px;font-weight:500;letter-spacing:2px;cursor:pointer;transition:all .2s;text-transform:uppercase;white-space:nowrap}
+  .dl-btn:hover{background:rgba(245,158,11,.1);box-shadow:0 0 20px rgba(245,158,11,.2)}
+  .rpt-meta{font-size:11px;color:var(--tx3);letter-spacing:1px;text-align:right}
+  .rpt-date{color:var(--tx2);font-size:12px;margin-top:4px}
+
+  /* SENTIMENTS */
+  .sent-row{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+  .sent-card{flex:1;min-width:120px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:14px 16px}
+  .sent-lbl{font-size:9px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px}
+  .sent-val{font-family:'Bebas Neue';font-size:26px;letter-spacing:2px}
+  .bull{color:var(--a1)}.bear{color:var(--red)}.neutral{color:var(--a2)}
+  .div{height:1px;background:var(--border);margin:24px 0}
+
+  /* PANELS */
+  .panel{background:var(--bg2);border:1px solid var(--border);border-radius:4px;overflow:hidden;margin-bottom:16px}
+  .ph{display:flex;align-items:center;gap:12px;padding:16px 24px;border-bottom:1px solid var(--border)}
+  .pn{font-family:'Bebas Neue';font-size:32px;color:var(--tx3);line-height:1}
+  .pt{font-family:'Bebas Neue';font-size:22px;letter-spacing:3px}
+  .ptag{margin-left:auto;font-size:9px;letter-spacing:2px;text-transform:uppercase;padding:4px 10px;border-radius:2px}
+  .pb{padding:24px}
+  .c1 .pt{color:var(--a1)} .c1 .ptag{background:rgba(0,212,170,.1);color:var(--a1)}
+  .c2 .pt{color:var(--a2)} .c2 .ptag{background:rgba(245,158,11,.1);color:var(--a2)}
+  .c3 .pt{color:var(--a3)} .c3 .ptag{background:rgba(59,130,246,.1);color:var(--a3)} .c3 .ph{background:linear-gradient(90deg,rgba(59,130,246,.07),transparent)}
+  .c4 .pt{color:var(--a4)} .c4 .ptag{background:rgba(167,139,250,.1);color:var(--a4)}
+  .atxt{font-family:'IBM Plex Sans',sans-serif;font-size:14px;line-height:1.85;color:var(--tx2);white-space:pre-wrap}
+
+  /* CONF BADGE */
+  .cbadge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:12px;font-size:10px;letter-spacing:1px;font-weight:600;margin-left:8px}
+  .ch{background:rgba(0,212,170,.1);color:var(--a1);border:1px solid rgba(0,212,170,.25)}
+  .cm{background:rgba(245,158,11,.1);color:var(--a2);border:1px solid rgba(245,158,11,.25)}
+  .cl{background:rgba(239,68,68,.1);color:var(--red);border:1px solid rgba(239,68,68,.25)}
+  .cdot{width:5px;height:5px;border-radius:50%;background:currentColor}
+
+  /* DATA QUALITY BANNER */
+  .dq-warn{display:flex;align-items:center;gap:12px;padding:12px 18px;border-radius:4px;margin-bottom:16px;font-family:'IBM Plex Sans',sans-serif;font-size:12px;line-height:1.5}
+  .dq-low{background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.25);color:var(--red)}
+  .dq-mid{background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.25);color:var(--a2)}
+  .dq-ok{background:rgba(0,212,170,.07);border:1px solid rgba(0,212,170,.25);color:var(--a1)}
+
+  /* PRICE PANEL */
+  .price-row{display:flex;align-items:flex-start;gap:40px;margin-bottom:28px;flex-wrap:wrap}
+  .price-blk{min-width:175px}
+  .price-lbl{font-size:9px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:6px}
+  .price-val{font-family:'Bebas Neue';font-size:56px;color:var(--tx);letter-spacing:2px;line-height:1}
+  .price-cur{font-family:'IBM Plex Mono';font-size:16px;color:var(--tx3);margin-left:6px;vertical-align:super}
+  .chg-row{display:flex;align-items:center;gap:8px;margin-top:8px}
+  .chg-v{font-family:'IBM Plex Mono';font-size:13px;font-weight:600}
+  .price-note{font-size:9px;color:var(--tx3);line-height:1.55;border-left:2px solid var(--border);padding-left:8px;margin-top:10px}
+  .w52-blk{flex:1;min-width:280px}
+  .w52-lbl{font-size:9px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:14px}
+  .w52-ext{display:flex;justify-content:space-between;margin-bottom:10px}
+  .ext-v{font-family:'IBM Plex Mono';font-weight:700;font-size:15px}
+  .ext-lo .ext-v{color:var(--red)}.ext-hi .ext-v{color:var(--a1)}.ext-hi{text-align:right}
+  .ext-l{font-size:9px;color:var(--tx3);letter-spacing:1px;margin-top:3px}
+  .rbar{position:relative;height:10px;background:var(--bg3);border-radius:5px;overflow:visible;margin-bottom:4px}
+  .rbar-grad{position:absolute;inset:0;border-radius:5px;background:linear-gradient(90deg,rgba(239,68,68,.4),rgba(245,158,11,.4),rgba(0,212,170,.4))}
+  .rleg{display:flex;gap:16px;margin-top:12px;flex-wrap:wrap}
+  .rleg-i{display:flex;align-items:center;gap:6px}
+  .rleg-t{font-size:9px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase}
+  .lvl-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:28px}
+  @media(max-width:600px){.lvl-grid{grid-template-columns:1fr}}
+  .lvl{border-radius:4px;padding:20px;position:relative;overflow:hidden}
+  .lvl-en{background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.22)}
+  .lvl-tp{background:rgba(0,212,170,.06);border:1px solid rgba(0,212,170,.22)}
+  .lvl-sl{background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.22)}
+  .lvl-badge{position:absolute;top:0;right:0;font-size:9px;letter-spacing:1px;padding:3px 8px;border-bottom-left-radius:4px}
+  .lvl-en .lvl-badge{background:rgba(59,130,246,.18);color:var(--a3)}
+  .lvl-tp .lvl-badge{background:rgba(0,212,170,.18);color:var(--a1)}
+  .lvl-sl .lvl-badge{background:rgba(239,68,68,.18);color:var(--red)}
+  .lvl-icon{font-size:20px;margin-bottom:10px}
+  .lvl-name{font-size:9px;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px}
+  .lvl-en .lvl-name{color:rgba(59,130,246,.8)}.lvl-tp .lvl-name{color:rgba(0,212,170,.8)}.lvl-sl .lvl-name{color:rgba(239,68,68,.8)}
+  .lvl-val{font-family:'Bebas Neue';font-size:30px;letter-spacing:1px}
+  .lvl-en .lvl-val{color:var(--a3)}.lvl-tp .lvl-val{color:var(--a1)}.lvl-sl .lvl-val{color:var(--red)}
+  .lvl-sub{font-size:11px;color:var(--tx3);margin-top:2px}
+  .lvl-pct{font-size:12px;font-weight:600;margin-top:6px;padding:3px 8px;border-radius:3px;display:inline-block}
+  .lvl-en .lvl-pct{background:rgba(59,130,246,.1);color:var(--a3)}.lvl-tp .lvl-pct{background:rgba(0,212,170,.1);color:var(--a1)}.lvl-sl .lvl-pct{background:rgba(239,68,68,.1);color:var(--red)}
+  .lvl-rat{font-family:'IBM Plex Sans',sans-serif;font-size:12px;color:var(--tx3);line-height:1.6;margin-top:20px;border-top:1px solid var(--border);padding-top:16px}
+
+  /* CHARTS */
+  .mg{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:20px}
+  .dg{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:700px){.mg,.dg{grid-template-columns:1fr}}
+  .mc{background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:18px}
+  .mc-t{font-size:9px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px}
+  .mc-s{font-size:10px;color:var(--tx2);margin-bottom:14px;font-family:'IBM Plex Sans'}
+  .bch{display:flex;align-items:flex-end;gap:6px;height:80px}
+  .bc{display:flex;flex-direction:column;align-items:center;flex:1;gap:0;height:100%}
+  .bci{width:100%;position:relative;min-height:3px;display:flex;align-items:flex-end;justify-content:center}
+  .bv{font-size:8px;font-weight:700;white-space:nowrap;position:absolute;top:-14px}
+  .bl{font-size:8px;color:var(--tx3);margin-top:4px;white-space:nowrap}
+  .cr{display:flex;align-items:center;justify-content:space-between;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
+  .cr-l{font-size:9px;color:var(--tx3);letter-spacing:1px}
+  .no-data{font-size:11px;color:var(--tx3);font-style:italic;padding:20px 0}
+
+  /* DATA SOURCES */
+  .src-box{background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:14px 18px;margin-top:16px}
+  .src-lbl{font-size:9px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px}
+  .src-list{display:flex;flex-wrap:wrap;gap:8px}
+  .src-tag{font-size:10px;color:var(--tx2);background:var(--bg2);border:1px solid var(--border);border-radius:3px;padding:3px 8px;font-family:'IBM Plex Sans'}
+
+  /* CONFIDENCE TABLE */
+  .ct{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px}
+  .ct th{text-align:left;color:var(--tx3);font-size:9px;letter-spacing:2px;text-transform:uppercase;padding:6px 12px;border-bottom:1px solid var(--border);font-weight:400}
+  .ct td{padding:10px 12px;border-bottom:1px solid var(--bg3);color:var(--tx2)}
+  .ct tr:last-child td{border-bottom:none}
+  .ct tr:hover td{background:rgba(255,255,255,.015)}
+  .cs{font-family:'Bebas Neue';font-size:20px;letter-spacing:1px}
+  .cb{height:4px;background:var(--bg3);border-radius:2px;margin-top:4px;width:90px}
+  .cbf{height:100%;border-radius:2px}
+
+  @media print{
+    .grid,.srch,.dl-btn,.hdr-r,.dq-warn{display:none!important}
+    .app{background:white!important}
+    .panel,.mc{background:white!important;border:1px solid #ddd!important;break-inside:avoid;margin-bottom:10px}
+    .ph{background:#f5f5f5!important}.atxt,.lvl-rat{color:#333!important}
+    .big-tkr,.lvl-val,.price-val,.cs{color:#000!important}
+    .big-tkr{font-size:48px!important}.pt{color:#000!important}
+    .sent-card,.lvl{background:#f9f9f9!important;border:1px solid #ddd!important}
+    .wrap{max-width:100%!important}.cbadge{border:1px solid #ccc!important;background:#f5f5f5!important;color:#333!important}
+    body{background:white!important;color:#111!important}
+  }
+`;
+
+/* ══════════════════════════════════════════════════════════════
+   HELPERS
+══════════════════════════════════════════════════════════════ */
+const n = (v, d=2) => { const x=parseFloat(v); return isNaN(x)?"—":x.toLocaleString("es-ES",{minimumFractionDigits:d,maximumFractionDigits:d}); };
+const fK = v => { const x=parseFloat(v); if(isNaN(x)) return "—"; if(Math.abs(x)>=1e9) return (x/1e9).toFixed(1)+"B"; if(Math.abs(x)>=1e6) return (x/1e6).toFixed(1)+"M"; if(Math.abs(x)>=1e3) return (x/1e3).toFixed(1)+"K"; return x.toFixed(1); };
+const pct = (a,b) => { if(!a||!b||isNaN(a)||isNaN(b)) return null; const d=((a-b)/b)*100; return (d>=0?"+":"")+d.toFixed(1)+"%"; };
+const cl = (v,lo,hi) => hi===lo?0:Math.max(0,Math.min(100,((v-lo)/(hi-lo))*100));
+
+// Sentiment → CSS class (handles ES/PT/EN values)
+const sentClass = s => {
+  if(!s) return "neutral";
+  const v=s.toLowerCase();
+  if(v.includes("bull")||v.includes("alcista")||v.includes("alta")||v.includes("positiv")||v.includes("compra")||v.includes("buy")) return "bull";
+  if(v.includes("bear")||v.includes("bajista")||v.includes("baixa")||v.includes("negativ")||v.includes("venta")||v.includes("sell")) return "bear";
+  return "neutral";
+};
+
+const confColor = s => s>=7?"var(--a1)":s>=5?"var(--a2)":"var(--red)";
+const confClass = s => s>=7?"ch":s>=5?"cm":"cl";
+
+function avgConf(c) {
+  if(!c) return 0;
+  const vals = ["price_data","macro","fundamental","technical","dividend_data","debt_cash_data","shares_data","trading_levels"].map(k=>parseFloat(c[k])||0);
+  return vals.reduce((a,b)=>a+b,0)/vals.length;
+}
+
+/* Parse rate-limit timestamp from error object */
+function parseResetTime(errData, lang) {
+  try {
+    const resetsAt = errData?.error?.resetsAt || errData?.error?.resets_at ||
+      (errData?.error?.windows?.["5h"]?.resets_at);
+    if(!resetsAt) return null;
+    const ms = typeof resetsAt==="number" ? (resetsAt<1e12?resetsAt*1000:resetsAt) : Date.parse(resetsAt);
+    return new Date(ms).toLocaleTimeString(lang==="en"?"en-GB":lang==="pt"?"pt-PT":"es-ES",{hour:"2-digit",minute:"2-digit"});
+  } catch(_){ return null; }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   PROMPT   — structured to minimise hallucination
+   Key principle: AI must search FIRST, then derive analysis
+   from what it found. Confidence scores penalise guessing.
+══════════════════════════════════════════════════════════════ */
+function buildPrompt(ticker, lang) {
+  const langMap = { es:"Redacta TODO en español.", pt:"Redige TODO em português de Portugal.", en:"Write EVERYTHING in English." };
+  const li = langMap[lang];
+
+  // Canonical sentiment tokens the UI can parse
+  const BULL = lang==="en"?"Bullish":lang==="pt"?"Alta":"Alcista";
+  const BEAR = lang==="en"?"Bearish":lang==="pt"?"Baixa":"Bajista";
+  const NEUT = lang==="en"?"Neutral":lang==="pt"?"Neutro":"Neutro";
+
+  return `You are an expert financial analyst. ${li}
+
+## TASK
+Analyse the stock ticker: ${ticker}
+
+## MANDATORY SEARCH PROTOCOL
+You MUST perform at least 4 separate web_search calls before writing the analysis:
+1. Search: "${ticker} stock price today 52-week high low 2025"
+2. Search: "${ticker} dividend history yield payout ratio 2020 2021 2022 2023 2024"
+3. Search: "${ticker} shares outstanding net debt cash balance sheet 2020 2021 2022 2023 2024"
+4. Search: "${ticker} financial results news analysis 2025"
+
+Do NOT skip any search. Do NOT fabricate data you did not find.
+
+## HONESTY RULES (critical — follow strictly)
+- If you cannot find an exact numeric value via web search, use null for that field.
+- Never invent or guess specific financial figures (EPS, revenue, P/E ratios, exact prices, dividend amounts).
+- Qualitative analysis (trends, context, risks) is acceptable as reasoned commentary even when exact data is unavailable.
+- Confidence scores MUST reflect true uncertainty: if you guessed a number, score ≤ 4. If you found it via web search, score 7–9. Trading levels are always estimates → score ≤ 6.
+- If the ticker does not correspond to a known listed company, set "company_name" to "UNKNOWN".
+
+## OUTPUT — respond ONLY with this exact JSON (no markdown, no extra text):
+{
+  "company_name": "Full legal company name",
+  "sector": "Sector",
+  "country": "Country of incorporation",
+  "exchange": "Primary exchange (NYSE, NASDAQ, BME, etc.)",
+  "currency": "USD",
+  "current_price": 123.45,
+  "price_change_pct": 1.23,
+  "week52_low": 100.00,
+  "week52_high": 200.00,
+  "market_cap": "e.g. 2.8T USD",
+  "entry_zone_low": 115.00,
+  "entry_zone_high": 122.00,
+  "take_profit": 155.00,
+  "stop_loss": 108.00,
+  "entry_rationale": "2–3 sentence explanation based on technical levels found in search. Mention key support/resistance levels explicitly.",
+  "dividend_yield_5y":      [{"year":"2020","value":null},{"year":"2021","value":null},{"year":"2022","value":null},{"year":"2023","value":null},{"year":"2024","value":null}],
+  "dividend_growth_5y":     [{"year":"2020","value":null},{"year":"2021","value":null},{"year":"2022","value":null},{"year":"2023","value":null},{"year":"2024","value":null}],
+  "payout_ratio_5y":        [{"year":"2020","value":null},{"year":"2021","value":null},{"year":"2022","value":null},{"year":"2023","value":null},{"year":"2024","value":null}],
+  "shares_outstanding_5y":  [{"year":"2020","value":null},{"year":"2021","value":null},{"year":"2022","value":null},{"year":"2023","value":null},{"year":"2024","value":null}],
+  "net_debt_5y":            [{"year":"2020","value":null},{"year":"2021","value":null},{"year":"2022","value":null},{"year":"2023","value":null},{"year":"2024","value":null}],
+  "net_cash_5y":            [{"year":"2020","value":null},{"year":"2021","value":null},{"year":"2022","value":null},{"year":"2023","value":null},{"year":"2024","value":null}],
+  "data_sources": ["source1.com", "source2.com"],
+  "macro": "Macroeconomic analysis (min 220 words): global & regional economic context, monetary policy, interest rates, inflation, sector trends, geopolitical risks and their specific impact on this company. Base this on what you found in the searches.",
+  "fundamental": "Fundamental analysis (min 220 words): business model, revenue trends, operating margins, balance sheet strength, FCF, key valuation ratios found (P/E, EV/EBITDA, P/FCF, ROE, ROIC), competitive moat, dividend policy, analyst price targets if found. Clearly flag any ratio that is estimated vs confirmed.",
+  "technical": "Technical analysis (min 220 words): current price position vs 52-week range, key moving averages if found, RSI and MACD commentary, key support and resistance levels, recent price pattern, short/medium/long-term outlook. Use the actual price data you retrieved.",
+  "macro_sentiment":       "${BULL} | ${NEUT} | ${BEAR}",
+  "fundamental_sentiment": "${BULL} | ${NEUT} | ${BEAR}",
+  "technical_sentiment":   "${BULL} | ${NEUT} | ${BEAR}",
+  "overall":               "${BULL} | ${NEUT} | ${BEAR}",
+  "confidence": {
+    "price_data":    8, "price_data_note":    "Explain: was price found in search? Was 52W range confirmed?",
+    "macro":         7, "macro_note":          "Explain: is macro commentary based on recent confirmed sources or general knowledge?",
+    "fundamental":   6, "fundamental_note":    "Explain: which ratios were found vs estimated? Cite source if known.",
+    "technical":     5, "technical_note":      "Explain: is technical analysis based on confirmed price levels or estimates?",
+    "dividend_data": 7, "dividend_data_note":  "Explain: were dividend figures found in search? Which years? Score 3 if company does not pay dividend.",
+    "debt_cash_data":6, "debt_cash_data_note": "Explain: were debt/cash figures from annual reports or estimated?",
+    "shares_data":   7, "shares_data_note":    "Explain: source for shares outstanding.",
+    "trading_levels":5, "trading_levels_note": "Always ≤6. These are analytical estimates, not guaranteed levels."
+  }
+}
+
+Replace the pipe-separated sentiment options with EXACTLY ONE of the options shown.
+Use null (not 0, not "N/A") for any numeric field you could not confirm via web search.`;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   COMPONENTS
+══════════════════════════════════════════════════════════════ */
+function ConfBadge({score}){
+  if(score==null) return null;
+  return <span className={`cbadge ${confClass(score)}`}><span className="cdot"/>{score}/10</span>;
+}
+
+function DataQualityBanner({confidence, lang}){
+  const t=T[lang];
+  const avg=avgConf(confidence);
+  if(avg===0) return null;
+  let cls,icon,msg;
+  if(avg>=7){ cls="dq-ok"; icon="✓"; msg=lang==="en"?"Good data quality — most fields confirmed via web search.":lang==="pt"?"Boa qualidade dos dados — a maioria dos campos confirmados via pesquisa web.":"Buena calidad de datos — la mayoría de campos confirmados vía búsqueda web."; }
+  else if(avg>=5){ cls="dq-mid"; icon="⚠"; msg=lang==="en"?"Moderate data quality — some fields are estimates. Check the reliability table below.":lang==="pt"?"Qualidade moderada — alguns campos são estimativas. Consulte a tabela de fiabilidade abaixo.":"Calidad moderada — algunos campos son estimaciones. Revisa la tabla de fiabilidad."; }
+  else { cls="dq-low"; icon="⚠"; msg=lang==="en"?"Low data quality — many fields could not be confirmed. Treat all figures with caution.":lang==="pt"?"Qualidade baixa — muitos campos não puderam ser confirmados. Use os dados com cautela.":"Calidad baja — muchos campos no se pudieron confirmar. Usa los datos con precaución."; }
+  return <div className={`dq-warn ${cls}`}><span style={{fontSize:16}}>{icon}</span><span>{msg} <strong>Avg: {avg.toFixed(1)}/10</strong></span></div>;
+}
+
+/* Mini bar chart — handles null values gracefully */
+function BarChart({data,color,unit,lang}){
+  const t=T[lang];
+  if(!data||data.length===0) return <div className="no-data">{t.noData}</div>;
+  const vals=data.map(d=>parseFloat(d.value));
+  const validVals=vals.filter(v=>!isNaN(v));
+  if(validVals.length===0) return <div className="no-data">{t.noData}</div>;
+  const maxV=Math.max(...validVals.map(Math.abs),0.01);
+  return(
+    <div className="bch">
+      {data.map((d,i)=>{
+        const v=parseFloat(d.value);
+        const valid=!isNaN(v);
+        const isNeg=valid&&v<0;
+        const barH=valid?Math.max((Math.abs(v)/maxV)*68,3):0;
+        const col=isNeg?"var(--red)":color;
+        return(
+          <div className="bc" key={i}>
+            <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"flex-end",position:"relative",width:"100%"}}>
+              {valid?(
+                <div className="bci" style={{height:barH,background:col,opacity:0.6+(i/data.length)*0.4,width:"100%",borderRadius:isNeg?"0 0 3px 3px":"3px 3px 0 0"}}>
+                  <span className="bv" style={{color:col}}>{unit==="%"?v.toFixed(1)+"%":fK(v)}</span>
+                </div>
+              ):(
+                <div style={{height:3,width:"100%",background:"var(--border)",borderRadius:2,position:"relative"}}>
+                  <span className="bv" style={{color:"var(--tx3)"}}>—</span>
+                </div>
+              )}
+            </div>
+            <div className="bl">{d.year}</div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/* SVG line chart — handles nulls by skipping them */
+function LineChart({data,color,unit,lang}){
+  const t=T[lang];
+  if(!data||data.length===0) return <div className="no-data">{t.noData}</div>;
+  const entries=data.map((d,i)=>({i,v:parseFloat(d.value),year:d.year})).filter(e=>!isNaN(e.v));
+  if(entries.length<2) return <BarChart data={data} color={color} unit={unit} lang={lang}/>;
+  const vals=entries.map(e=>e.v);
+  const minV=Math.min(...vals),maxV=Math.max(...vals),range=maxV-minV||1;
+  const W=300,H=80,pad=8,span=data.length-1;
+  const pts=entries.map(e=>[pad+(e.i/span)*(W-pad*2),H-pad-((e.v-minV)/range)*(H-pad*2)]);
+  const poly=pts.map(p=>p.join(",")).join(" ");
+  const area=`M${pts[0][0]},${H-pad} `+pts.map(p=>`L${p[0]},${p[1]}`).join(" ")+` L${pts[pts.length-1][0]},${H-pad} Z`;
+  const gid=`g${Math.random().toString(36).slice(2,6)}`;
+  return(
+    <div>
+      <svg viewBox={`0 0 ${W} ${H}`} style={{width:"100%",height:80}}>
+        <defs><linearGradient id={gid} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={color} stopOpacity=".3"/><stop offset="100%" stopColor={color} stopOpacity=".02"/></linearGradient></defs>
+        <path d={area} fill={`url(#${gid})`}/>
+        <polyline points={poly} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round"/>
+        {pts.map(([x,y],i)=><circle key={i} cx={x} cy={y} r="3" fill={color}/>)}
+      </svg>
+      <div style={{display:"flex",justifyContent:"space-between",marginTop:4}}>
+        {data.map((d,i)=>{
+          const v=parseFloat(d.value);
+          return(
+            <div key={i} style={{fontSize:8,color:"var(--tx3)",textAlign:"center",flex:1}}>
+              <div style={{color:isNaN(v)?"var(--tx3)":color,fontSize:9,fontWeight:700}}>{isNaN(v)?"—":unit==="%"?v.toFixed(1)+"%":fK(v)}</div>
+              {d.year}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function MetricCard({title,sub,data,color,unit,type="bar",conf,lang}){
+  const t=T[lang];
+  return(
+    <div className="mc">
+      <div className="mc-t">{title}</div>
+      <div className="mc-s">{sub}</div>
+      {type==="line"?<LineChart data={data} color={color} unit={unit} lang={lang}/>:<BarChart data={data} color={color} unit={unit} lang={lang}/>}
+      <div className="cr"><span className="cr-l">{t.reliab}</span><ConfBadge score={conf}/></div>
+    </div>
+  );
+}
+
+function PriceMarkers({lo,hi,price,eLo,eHi,tp,sl}){
+  if(hi<=lo) return null;
+  const pricePct=cl(price,lo,hi);
+  const eLoPct=cl(eLo,lo,hi);
+  const eHiPct=cl(eHi,lo,hi);
+  const tpPct=cl(tp,lo,hi);
+  const slPct=cl(sl,lo,hi);
+  const diamond=(left,col)=>(
+    <div style={{position:"absolute",left:`${left}%`,top:"50%",transform:"translate(-50%,-50%) rotate(45deg)",zIndex:5,width:10,height:10,background:col,boxShadow:`0 0 8px ${col}88`}}/>
+  );
+  return(
+    <>
+      {/* Entry zone band */}
+      <div style={{position:"absolute",top:-3,height:16,borderRadius:3,left:`${eLoPct}%`,width:`${Math.max(eHiPct-eLoPct,2)}%`,background:"rgba(59,130,246,.28)",border:"1px solid var(--a3)",zIndex:4}}/>
+      {/* SL diamond */}
+      {diamond(slPct,"var(--red)")}
+      {/* Current price line */}
+      <div style={{position:"absolute",left:`${pricePct}%`,top:"50%",transform:"translate(-50%,-50%)",zIndex:6,width:3,height:22,background:"var(--tx)",borderRadius:2}}/>
+      {/* TP diamond */}
+      {diamond(tpPct,"var(--a1)")}
+    </>
+  );
+}
+
+function PricePanel({r,lang}){
+  const t=T[lang];
+  const lo=parseFloat(r.week52_low)||0,hi=parseFloat(r.week52_high)||0;
+  const price=parseFloat(r.current_price)||0;
+  const eLo=parseFloat(r.entry_zone_low)||0,eHi=parseFloat(r.entry_zone_high)||0;
+  const tp=parseFloat(r.take_profit)||0,sl=parseFloat(r.stop_loss)||0;
+  const cur=r.currency||"";
+  const chg=parseFloat(r.price_change_pct);
+  const chgOk=!isNaN(chg);
+  const chgCol=chgOk?(chg>=0?"var(--a1)":"var(--red)"):"var(--tx3)";
+  const mid=(eLo+eHi)/2;
+
+  return(
+    <div className="panel c3">
+      <div className="ph">
+        <div className="pn">01</div>
+        <div className="pt">{t.priceTitle}</div>
+        <div className="ptag">MARKET DATA</div>
+        <ConfBadge score={r.confidence?.price_data}/>
+      </div>
+      <div className="pb">
+        <div className="price-row">
+          <div className="price-blk">
+            <div className="price-lbl">{t.currentPrice}</div>
+            <div className="price-val">{n(r.current_price)}<span className="price-cur">{cur}</span></div>
+            {chgOk&&<div className="chg-row">
+              <span style={{color:chgCol,fontSize:18}}>{chg>=0?"▲":"▼"}</span>
+              <span className="chg-v" style={{color:chgCol}}>{Math.abs(chg).toFixed(2)}%</span>
+              <span style={{fontSize:10,color:"var(--tx3)"}}>{t.vsYest}</span>
+            </div>}
+            {r.market_cap&&<div style={{fontSize:11,color:"var(--tx3)",marginTop:6}}>Cap. {r.market_cap}</div>}
+            <div className="price-note">{t.aiNote}</div>
+          </div>
+          <div className="w52-blk">
+            <div className="w52-lbl">{t.range52}</div>
+            <div className="w52-ext">
+              <div className="ext-lo"><div className="ext-v">{n(r.week52_low)} {cur}</div><div className="ext-l">{t.min52}</div></div>
+              <div className="ext-hi"><div className="ext-v">{n(r.week52_high)} {cur}</div><div className="ext-l">{t.max52}</div></div>
+            </div>
+            <div className="rbar">
+              <div className="rbar-grad"/>
+              <PriceMarkers lo={lo} hi={hi} price={price} eLo={eLo} eHi={eHi} tp={tp} sl={sl}/>
+            </div>
+            <div className="rleg">
+              {[[t.legCurrent,"line","var(--tx)"],[t.legEntry,"zone","var(--a3)"],[t.legTP,"dia","var(--a1)"],[t.legSL,"dia","var(--red)"]].map(([lbl,sh,c])=>(
+                <div className="rleg-i" key={lbl}>
+                  {sh==="line"?<div style={{width:3,height:14,background:c,borderRadius:2}}/>
+                    :sh==="zone"?<div style={{width:12,height:8,background:"rgba(59,130,246,.28)",border:"1px solid var(--a3)",borderRadius:2}}/>
+                    :<div style={{width:8,height:8,background:c,transform:"rotate(45deg)",borderRadius:1}}/>}
+                  <span className="rleg-t">{lbl}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div className="lvl-grid">
+          <div className="lvl lvl-en">
+            <div className="lvl-badge">{t.badgeEntry}</div><div className="lvl-icon">⬇</div>
+            <div className="lvl-name">{t.entryZone}</div>
+            <div className="lvl-val">{n(r.entry_zone_low)} – {n(r.entry_zone_high)}</div>
+            <div className="lvl-sub">{cur}</div>
+            <div className="lvl-pct">{pct(mid,price)||"—"} {t.vsPrice}</div>
+          </div>
+          <div className="lvl lvl-tp">
+            <div className="lvl-badge">{t.badgeTP}</div><div className="lvl-icon">🎯</div>
+            <div className="lvl-name">{t.tpLabel}</div>
+            <div className="lvl-val">{n(r.take_profit)}</div>
+            <div className="lvl-sub">{cur}</div>
+            <div className="lvl-pct">{pct(tp,price)?pct(tp,price)+" "+t.potential:"—"}</div>
+          </div>
+          <div className="lvl lvl-sl">
+            <div className="lvl-badge">{t.badgeSL}</div><div className="lvl-icon">🛑</div>
+            <div className="lvl-name">{t.slLabel}</div>
+            <div className="lvl-val">{n(r.stop_loss)}</div>
+            <div className="lvl-sub">{cur}</div>
+            <div className="lvl-pct">{pct(sl,price)?pct(sl,price)+" "+t.risk:"—"}</div>
+          </div>
+        </div>
+        {r.entry_rationale&&<div className="lvl-rat"><span style={{color:"var(--tx2)",fontWeight:600,letterSpacing:1}}>{t.opRat}</span>{r.entry_rationale}</div>}
+        {r.data_sources&&r.data_sources.length>0&&(
+          <div className="src-box">
+            <div className="src-lbl">{t.dataSources}</div>
+            <div className="src-list">{r.data_sources.map((s,i)=><span className="src-tag" key={i}>{s}</span>)}</div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function FundamentalPanel({r,lang}){
+  const t=T[lang];
+  const c=r.confidence||{};
+  return(
+    <div className="panel c2">
+      <div className="ph">
+        <div className="pn">03</div>
+        <div className="pt">{t.fundTitle}</div>
+        <div className="ptag">FUND</div>
+        <ConfBadge score={c.fundamental}/>
+      </div>
+      <div className="pb">
+        <div className="atxt" style={{marginBottom:28}}>{r.fundamental}</div>
+        <div style={{fontSize:9,color:"var(--a2)",letterSpacing:3,textTransform:"uppercase",marginBottom:16}}>{t.histMetrics}</div>
+        <div className="mg">
+          <MetricCard title={t.dyTitle} sub={t.dySub} data={r.dividend_yield_5y} color="var(--a1)" unit="%" type="bar" conf={c.dividend_data} lang={lang}/>
+          <MetricCard title={t.dgTitle} sub={t.dgSub} data={r.dividend_growth_5y} color="var(--a2)" unit="%" type="bar" conf={c.dividend_data} lang={lang}/>
+          <MetricCard title={t.prTitle} sub={t.prSub} data={r.payout_ratio_5y} color="var(--a4)" unit="%" type="line" conf={c.dividend_data} lang={lang}/>
+          <MetricCard title={t.soTitle} sub={t.soSub} data={r.shares_outstanding_5y} color="var(--a3)" unit="" type="line" conf={c.shares_data} lang={lang}/>
+        </div>
+        <div style={{fontSize:9,color:"var(--a2)",letterSpacing:3,textTransform:"uppercase",margin:"24px 0 16px"}}>{t.finStruct}</div>
+        <div className="dg">
+          <MetricCard title={t.ndTitle} sub={t.ndSub} data={r.net_debt_5y} color="var(--red)" unit="" type="bar" conf={c.debt_cash_data} lang={lang}/>
+          <MetricCard title={t.ncTitle} sub={t.ncSub} data={r.net_cash_5y} color="var(--a1)" unit="" type="line" conf={c.debt_cash_data} lang={lang}/>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ConfTable({confidence,lang}){
+  const t=T[lang];
+  const FIELDS=["price_data","macro","fundamental","technical","dividend_data","debt_cash_data","shares_data","trading_levels"];
+  return(
+    <div className="panel c4">
+      <div className="ph">
+        <div className="pn">05</div>
+        <div className="pt">{t.confTitle}</div>
+        <div className="ptag">CONFIDENCE</div>
+      </div>
+      <div className="pb">
+        <div style={{fontSize:12,color:"var(--tx3)",marginBottom:16,lineHeight:1.6,fontFamily:"'IBM Plex Sans'"}}>{t.confIntro}</div>
+        <table className="ct">
+          <thead><tr><th>{t.cfld}</th><th>{t.cscr}</th><th>{t.cbar}</th><th>{t.cnote}</th></tr></thead>
+          <tbody>
+            {FIELDS.map(f=>{
+              const s=parseFloat(confidence?.[f])||0;
+              const note=confidence?.[f+"_note"]||"";
+              return(
+                <tr key={f}>
+                  <td>{t.icons[f]} {t.flds[f]}</td>
+                  <td><span className="cs" style={{color:confColor(s)}}>{s}</span><span style={{fontSize:10,color:"var(--tx3)"}}>/10</span></td>
+                  <td><div className="cb"><div className="cbf" style={{width:`${s*10}%`,background:confColor(s)}}/></div></td>
+                  <td style={{fontFamily:"'IBM Plex Sans'",fontSize:11,color:"var(--tx3)",maxWidth:280}}>{note}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════
+   MAIN APP
+══════════════════════════════════════════════════════════════ */
+const LANGS=[{code:"es",flag:"🇪🇸"},{code:"pt",flag:"🇵🇹"},{code:"en",flag:"🇬🇧"}];
+const SENT_KEYS=["macro_sentiment","fundamental_sentiment","technical_sentiment","overall"];
+
+export default function App(){
+  const [ticker,setTicker]=useState("");
+  const [loading,setLoading]=useState(false);
+  const [phase,setPhase]=useState("");
+  const [result,setResult]=useState(null);
+  const [errState,setErrState]=useState(null);
+  const [lang,setLang]=useState("es");
+  const t=T[lang];
+
+  async function analyze(){
+    if(!ticker.trim()) return;
+    const raw=ticker.trim().toUpperCase();
+
+    // Crypto guard (no API call)
+    if(CRYPTOS.has(raw)){ setErrState({type:"cryp",msg:t.errCrypto}); setResult(null); return; }
+
+    setLoading(true); setErrState(null); setResult(null);
+    let pi=0; setPhase(t.phases[0]);
+    const timer=setInterval(()=>{ pi=Math.min(pi+1,t.phases.length-1); setPhase(t.phases[pi]); },3500);
+
+    try{
+      const res=await fetch("https://api.anthropic.com/v1/messages",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+          model:"claude-sonnet-4-20250514",
+          max_tokens:8000,
+          // Force the model to use at least one tool before answering
+          tool_choice:{type:"any"},
+          tools:[{type:"web_search_20250305",name:"web_search"}],
+          messages:[{role:"user",content:buildPrompt(raw,lang)}],
+        }),
+      });
+
+      const data=await res.json();
+
+      // Rate limit detection
+      if(data.error){
+        const errStr=JSON.stringify(data.error);
+        if(errStr.includes("exceeded_limit")||errStr.includes("rate_limit")||errStr.includes("five_hour")){
+          setErrState({type:"rate",msg:t.errRate(parseResetTime(data,lang))}); return;
+        }
+        throw new Error(data.error.message||errStr);
+      }
+
+      // Extract text blocks (tool_use blocks are ignored — we want the final text)
+      const fullText=data.content.filter(b=>b.type==="text").map(b=>b.text).join("\n");
+      const match=fullText.replace(/```json|```/g,"").match(/\{[\s\S]*\}/);
+
+      if(!match){ setErrState({type:"inv",msg:t.errInvalid(raw)}); return; }
+
+      let parsed;
+      try{ parsed=JSON.parse(match[0]); }
+      catch(_){ setErrState({type:"inv",msg:t.errInvalid(raw)}); return; }
+
+      // Validate company found
+      const co=(parsed.company_name||"").toLowerCase();
+      if(!co||co==="unknown"||co.includes("not found")||co.includes("no encontrad")||co.includes("não encontrad")){
+        setErrState({type:"inv",msg:t.errInvalid(raw)}); return;
+      }
+
+      setResult({
+        ...parsed, ticker:raw,
+        date:new Date().toLocaleDateString(lang==="en"?"en-GB":lang==="pt"?"pt-PT":"es-ES",{day:"2-digit",month:"long",year:"numeric"}),
+      });
+    }catch(e){
+      const m=e.message||"";
+      if(m.includes("exceeded_limit")||m.includes("rate_limit")||m.includes("five_hour")){
+        setErrState({type:"rate",msg:t.errRate(null)});
+      } else {
+        setErrState({type:"gen",msg:t.errGen(raw,m)});
+      }
+    }finally{
+      clearInterval(timer); setLoading(false);
+    }
+  }
+
+  const errClassMap={cryp:"err-cryp",inv:"err-inv",rate:"err-rate",gen:"err-gen"};
+  const sentLabels=[t.macroLbl,t.fundLbl,t.techLbl,t.genLbl];
+
+  return(
+    <>
+      <style>{CSS}</style>
+      <div className="app">
+        <div className="grid"/>
+        <div className="wrap">
+
+          {/* HEADER */}
+          <div className="hdr">
+            <div className="logo">FX</div>
+            <div>
+              <div className="logo-t">FINAXIS</div>
+              <div className="logo-s">{t.subtitle}</div>
+            </div>
+            <div className="hdr-r">
+              <div className="lang-sw">
+                {LANGS.map(l=>(
+                  <button key={l.code} className={`lang-btn${lang===l.code?" active":""}`} onClick={()=>setLang(l.code)} title={l.code.toUpperCase()}>
+                    {l.flag}<span className="lang-code">{l.code.toUpperCase()}</span>
+                  </button>
+                ))}
+              </div>
+              <div style={{display:"flex",alignItems:"center",gap:7}}>
+                <div className="pulse"/><div className="live-txt">{t.liveAnalysis}</div>
+              </div>
+            </div>
+          </div>
+
+          {/* SEARCH */}
+          <div className="srch">
+            <div className="srch-lbl">{t.searchLabel}</div>
+            <div className="srch-row">
+              <input className="ticker-in" placeholder="AAPL" value={ticker}
+                onChange={e=>setTicker(e.target.value.toUpperCase())}
+                onKeyDown={e=>e.key==="Enter"&&!loading&&analyze()} maxLength={10}/>
+              <button className="go-btn" onClick={analyze} disabled={loading||!ticker.trim()}>
+                {loading?t.analyzing:t.analyzeBtn}
+              </button>
+            </div>
+          </div>
+
+          {/* LOADING */}
+          {loading&&(
+            <div className="ld">
+              <div className="ld-tkr">{ticker}</div>
+              <div className="ld-bars">{[0,1,2,3,4,5,6].map(i=><div key={i} className="ld-b"/>)}</div>
+              <div className="ld-txt">{t.processingData}</div>
+              <div className="ld-ph">{phase}</div>
+            </div>
+          )}
+
+          {/* ERROR */}
+          {errState&&!loading&&(
+            <div className={`err ${errClassMap[errState.type]||"err-gen"}`}>{errState.msg}</div>
+          )}
+
+          {/* RESULTS */}
+          {result&&!loading&&(
+            <div>
+              <div className="res-hdr">
+                <div>
+                  <div className="big-tkr">{result.ticker}</div>
+                  <div className="co-name">{result.company_name}</div>
+                  <div className="co-meta">{result.sector} · {result.country} · {result.exchange}</div>
+                </div>
+                <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:12}}>
+                  <button className="dl-btn" onClick={()=>window.print()}>{t.downloadPdf}</button>
+                  <div className="rpt-meta">{t.reportGenerated}<br/><span className="rpt-date">{result.date}</span></div>
+                </div>
+              </div>
+
+              {/* SENTIMENTS */}
+              <div className="sent-row">
+                {SENT_KEYS.map((k,i)=>(
+                  <div className="sent-card" key={k}>
+                    <div className="sent-lbl">{sentLabels[i]}</div>
+                    <div className={`sent-val ${sentClass(result[k])}`}>{result[k]||"—"}</div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="div"/>
+
+              {/* DATA QUALITY BANNER */}
+              <DataQualityBanner confidence={result.confidence} lang={lang}/>
+
+              {/* 01 PRICE */}
+              <PricePanel r={result} lang={lang}/>
+
+              {/* 02 MACRO */}
+              <div className="panel c1">
+                <div className="ph">
+                  <div className="pn">02</div><div className="pt">{t.macroTitle}</div>
+                  <div className="ptag">MACRO</div><ConfBadge score={result.confidence?.macro}/>
+                </div>
+                <div className="pb"><div className="atxt">{result.macro}</div></div>
+              </div>
+
+              {/* 03 FUNDAMENTAL + CHARTS */}
+              <FundamentalPanel r={result} lang={lang}/>
+
+              {/* 04 TECHNICAL */}
+              <div className="panel c3">
+                <div className="ph">
+                  <div className="pn">04</div><div className="pt">{t.techTitle}</div>
+                  <div className="ptag">TECH</div><ConfBadge score={result.confidence?.technical}/>
+                </div>
+                <div className="pb"><div className="atxt">{result.technical}</div></div>
+              </div>
+
+              {/* 05 CONFIDENCE TABLE */}
+              <ConfTable confidence={result.confidence} lang={lang}/>
+
+              <div style={{fontSize:10,color:"var(--tx3)",letterSpacing:1,marginTop:24,textAlign:"center",lineHeight:1.9}}>
+                FINAXIS · {t.foot}<br/>{result.date}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
