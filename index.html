@@ -1,0 +1,1246 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>FINAXIS · Terminal de Inteligencia Bursátil</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;700&family=Bebas+Neue&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#070a0e;--bg2:#0d1117;--bg3:#111820;
+  --border:#1e2d3d;
+  --a1:#00d4aa;--a2:#f59e0b;--a3:#3b82f6;--a4:#a78bfa;
+  --red:#ef4444;
+  --tx:#e2e8f0;--tx2:#94a3b8;--tx3:#475569;
+  --glow:0 0 20px rgba(0,212,170,.15);
+}
+body{background:var(--bg);color:var(--tx);font-family:'IBM Plex Mono',monospace;min-height:100vh}
+.app{min-height:100vh;background:var(--bg);position:relative;overflow-x:hidden}
+.grid{position:fixed;inset:0;background-image:linear-gradient(rgba(0,212,170,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,170,.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
+.wrap{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:40px 24px}
+
+/* API KEY INPUT */
+.api-box{background:var(--bg2);border:1px solid rgba(245,158,11,.3);border-radius:6px;padding:20px 24px;margin-bottom:32px}
+.api-box-hdr{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.api-lbl{font-size:10px;color:var(--a2);letter-spacing:3px;text-transform:uppercase}
+.api-note{font-size:11px;color:var(--tx3);margin-bottom:12px;font-family:'IBM Plex Sans';line-height:1.5}
+.api-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.api-in{flex:1;min-width:240px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:10px 14px;font-family:'IBM Plex Mono';font-size:12px;color:var(--a2);outline:none;transition:border-color .2s}
+.api-in:focus{border-color:var(--a2)}
+.api-in::placeholder{color:var(--tx3)}
+.api-save{background:rgba(245,158,11,.15);color:var(--a2);border:1px solid var(--a2);border-radius:4px;padding:10px 20px;font-family:'IBM Plex Mono';font-size:11px;font-weight:700;letter-spacing:2px;cursor:pointer;transition:all .2s;text-transform:uppercase;white-space:nowrap}
+.api-save:hover{background:rgba(245,158,11,.28)}
+.api-ok{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--a1)}
+.api-ok-dot{width:8px;height:8px;border-radius:50%;background:var(--a1)}
+
+/* HEADER */
+.hdr{display:flex;align-items:center;gap:16px;margin-bottom:48px;flex-wrap:wrap}
+.logo{width:44px;height:44px;background:var(--a1);clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue';font-size:18px;color:var(--bg);flex-shrink:0}
+.logo-t{font-family:'Bebas Neue';font-size:28px;letter-spacing:4px;color:var(--tx)}
+.logo-s{font-size:10px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-top:-4px}
+.hdr-r{margin-left:auto;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.pulse{width:6px;height:6px;border-radius:50%;background:var(--a1);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.live-txt{font-size:10px;color:var(--tx3);letter-spacing:2px}
+
+/* LANG */
+.lang-sw{display:flex;gap:0;align-items:center;background:var(--bg3);border:1px solid var(--border);border-radius:6px;overflow:hidden}
+.lang-btn{background:none;border:none;border-right:1px solid var(--border);cursor:pointer;padding:6px 10px;font-size:18px;transition:all .2s;opacity:.4;line-height:1;display:flex;align-items:center;gap:5px}
+.lang-btn:last-child{border-right:none}
+.lang-btn:hover{opacity:.75;background:rgba(255,255,255,.04)}
+.lang-btn.active{opacity:1;background:rgba(0,212,170,.12)}
+.lang-code{font-size:9px;color:var(--tx3);letter-spacing:1px;font-family:'IBM Plex Mono'}
+.lang-btn.active .lang-code{color:var(--a1)}
+
+/* SEARCH */
+.srch{margin-bottom:40px}
+.srch-lbl{font-size:10px;color:var(--a1);letter-spacing:3px;text-transform:uppercase;margin-bottom:12px}
+.srch-row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.ticker-in{flex:1;max-width:240px;background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:14px 20px;font-family:'IBM Plex Mono';font-size:22px;font-weight:700;color:var(--a1);letter-spacing:4px;text-transform:uppercase;outline:none;transition:all .2s}
+.ticker-in::placeholder{color:var(--tx3);font-weight:300;letter-spacing:2px;font-size:16px}
+.ticker-in:focus{border-color:var(--a1);box-shadow:var(--glow)}
+.go-btn{background:var(--a1);color:var(--bg);border:none;border-radius:4px;padding:14px 32px;font-family:'IBM Plex Mono';font-size:13px;font-weight:700;letter-spacing:2px;cursor:pointer;transition:all .2s;text-transform:uppercase;white-space:nowrap}
+.go-btn:hover:not(:disabled){background:#00f5c0;transform:translateY(-1px);box-shadow:0 4px 20px rgba(0,212,170,.4)}
+.go-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.cache-tag{font-size:9px;color:var(--a2);background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2);border-radius:3px;padding:3px 8px;letter-spacing:1px;display:none}
+.cache-tag.visible{display:inline-block}
+
+/* LOADING */
+.ld{padding:60px 0;text-align:center}
+.ld-tkr{font-family:'Bebas Neue';font-size:80px;color:var(--a1);opacity:.12;letter-spacing:8px}
+.ld-bars{display:flex;gap:4px;justify-content:center;margin:24px 0}
+.ld-b{width:3px;background:var(--a1);border-radius:2px;animation:ba 1.2s ease-in-out infinite}
+.ld-b:nth-child(1){height:20px;animation-delay:0s}.ld-b:nth-child(2){height:35px;animation-delay:.1s}.ld-b:nth-child(3){height:25px;animation-delay:.2s}.ld-b:nth-child(4){height:40px;animation-delay:.3s}.ld-b:nth-child(5){height:20px;animation-delay:.4s}.ld-b:nth-child(6){height:30px;animation-delay:.5s}.ld-b:nth-child(7){height:15px;animation-delay:.6s}
+@keyframes ba{0%,100%{opacity:.3;transform:scaleY(.6)}50%{opacity:1;transform:scaleY(1)}}
+.ld-txt{font-size:11px;color:var(--tx3);letter-spacing:3px;text-transform:uppercase}
+.ld-ph{font-size:13px;color:var(--a1);letter-spacing:1px;margin-top:8px}
+
+/* ERRORS */
+.err{border-radius:6px;padding:24px 28px;font-size:13px;line-height:1.9;white-space:pre-line;font-family:'IBM Plex Sans',sans-serif;display:none}
+.err.visible{display:block}
+.err-gen{background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.28);color:var(--red)}
+.err-cryp{background:rgba(167,139,250,.07);border:1px solid rgba(167,139,250,.28);color:var(--a4)}
+.err-inv{background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.28);color:var(--a2)}
+.err-rate{background:rgba(59,130,246,.07);border:1px solid rgba(59,130,246,.28);color:var(--a3)}
+
+/* RESULTS */
+.results{display:none}
+.results.visible{display:block}
+.res-hdr{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:28px;flex-wrap:wrap;gap:16px}
+.big-tkr{font-family:'Bebas Neue';font-size:72px;color:var(--a1);letter-spacing:4px;line-height:1}
+.co-name{font-family:'IBM Plex Sans';font-size:16px;color:var(--tx2);margin-top:4px}
+.co-meta{font-size:11px;color:var(--tx3);letter-spacing:2px;margin-top:4px}
+.dl-btn{background:transparent;color:var(--a2);border:1px solid var(--a2);border-radius:4px;padding:10px 20px;font-family:'IBM Plex Mono';font-size:11px;font-weight:500;letter-spacing:2px;cursor:pointer;transition:all .2s;text-transform:uppercase;white-space:nowrap}
+.dl-btn:hover{background:rgba(245,158,11,.1);box-shadow:0 0 20px rgba(245,158,11,.2)}
+.rpt-meta{font-size:11px;color:var(--tx3);letter-spacing:1px;text-align:right}
+.rpt-date{color:var(--tx2);font-size:12px;margin-top:4px}
+
+/* SENTIMENTS */
+.sent-row{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+.sent-card{flex:1;min-width:120px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:14px 16px}
+.sent-lbl{font-size:9px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px}
+.sent-val{font-family:'Bebas Neue';font-size:26px;letter-spacing:2px}
+.bull{color:var(--a1)}.bear{color:var(--red)}.neutral{color:var(--a2)}
+.div-line{height:1px;background:var(--border);margin:24px 0}
+
+/* PANELS */
+.panel{background:var(--bg2);border:1px solid var(--border);border-radius:4px;overflow:hidden;margin-bottom:16px}
+.ph{display:flex;align-items:center;gap:12px;padding:16px 24px;border-bottom:1px solid var(--border)}
+.pn{font-family:'Bebas Neue';font-size:32px;color:var(--tx3);line-height:1}
+.pt{font-family:'Bebas Neue';font-size:22px;letter-spacing:3px}
+.ptag{margin-left:auto;font-size:9px;letter-spacing:2px;text-transform:uppercase;padding:4px 10px;border-radius:2px}
+.pb{padding:24px}
+.c1 .pt{color:var(--a1)} .c1 .ptag{background:rgba(0,212,170,.1);color:var(--a1)}
+.c2 .pt{color:var(--a2)} .c2 .ptag{background:rgba(245,158,11,.1);color:var(--a2)}
+.c3 .pt{color:var(--a3)} .c3 .ptag{background:rgba(59,130,246,.1);color:var(--a3)} .c3 .ph{background:linear-gradient(90deg,rgba(59,130,246,.07),transparent)}
+.c4 .pt{color:var(--a4)} .c4 .ptag{background:rgba(167,139,250,.1);color:var(--a4)}
+.atxt{font-family:'IBM Plex Sans',sans-serif;font-size:14px;line-height:1.85;color:var(--tx2);white-space:pre-wrap}
+
+/* CONF BADGE */
+.cbadge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:12px;font-size:10px;letter-spacing:1px;font-weight:600;margin-left:8px}
+.ch{background:rgba(0,212,170,.1);color:var(--a1);border:1px solid rgba(0,212,170,.25)}
+.cm{background:rgba(245,158,11,.1);color:var(--a2);border:1px solid rgba(245,158,11,.25)}
+.cl{background:rgba(239,68,68,.1);color:var(--red);border:1px solid rgba(239,68,68,.25)}
+.cdot{width:5px;height:5px;border-radius:50%;background:currentColor;display:inline-block}
+
+/* DATA QUALITY BANNER */
+.dq-warn{display:flex;align-items:center;gap:12px;padding:12px 18px;border-radius:4px;margin-bottom:16px;font-family:'IBM Plex Sans',sans-serif;font-size:12px;line-height:1.5}
+.dq-low{background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.25);color:var(--red)}
+.dq-mid{background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.25);color:var(--a2)}
+.dq-ok{background:rgba(0,212,170,.07);border:1px solid rgba(0,212,170,.25);color:var(--a1)}
+
+/* PRICE DELAY BANNER */
+.delay-warn{display:flex;align-items:center;gap:10px;padding:8px 14px;border-radius:4px;margin-top:10px;font-size:11px;font-family:'IBM Plex Sans';line-height:1.5;background:rgba(167,139,250,.07);border:1px solid rgba(167,139,250,.25);color:var(--a4)}
+
+/* PRICE PANEL */
+.price-row{display:flex;align-items:flex-start;gap:40px;margin-bottom:28px;flex-wrap:wrap}
+.price-blk{min-width:175px}
+.price-lbl{font-size:9px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:6px}
+.price-val{font-family:'Bebas Neue';font-size:56px;color:var(--tx);letter-spacing:2px;line-height:1}
+.price-cur{font-family:'IBM Plex Mono';font-size:16px;color:var(--tx3);margin-left:6px;vertical-align:super}
+.chg-row{display:flex;align-items:center;gap:8px;margin-top:8px}
+.chg-v{font-family:'IBM Plex Mono';font-size:13px;font-weight:600}
+.price-note{font-size:9px;color:var(--tx3);line-height:1.55;border-left:2px solid var(--border);padding-left:8px;margin-top:10px}
+.w52-blk{flex:1;min-width:280px}
+.w52-lbl{font-size:9px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:14px}
+.w52-ext{display:flex;justify-content:space-between;margin-bottom:10px}
+.ext-v{font-family:'IBM Plex Mono';font-weight:700;font-size:15px}
+.ext-lo .ext-v{color:var(--red)}.ext-hi .ext-v{color:var(--a1)}.ext-hi{text-align:right}
+.ext-l{font-size:9px;color:var(--tx3);letter-spacing:1px;margin-top:3px}
+.rbar{position:relative;height:10px;background:var(--bg3);border-radius:5px;overflow:visible;margin-bottom:4px}
+.rbar-grad{position:absolute;inset:0;border-radius:5px;background:linear-gradient(90deg,rgba(239,68,68,.4),rgba(245,158,11,.4),rgba(0,212,170,.4))}
+.rleg{display:flex;gap:16px;margin-top:12px;flex-wrap:wrap}
+.rleg-i{display:flex;align-items:center;gap:6px}
+.rleg-t{font-size:9px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase}
+
+/* FAIR VALUE — LONG TERM INVESTOR */
+.fv-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:28px}
+@media(max-width:600px){.fv-grid{grid-template-columns:1fr}}
+.fv-card{border-radius:4px;padding:20px;position:relative;overflow:hidden}
+.fv-fair{background:rgba(0,212,170,.06);border:1px solid rgba(0,212,170,.22)}
+.fv-disc{background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.22)}
+.fv-margin{background:rgba(167,139,250,.06);border:1px solid rgba(167,139,250,.22)}
+.fv-badge{position:absolute;top:0;right:0;font-size:9px;letter-spacing:1px;padding:3px 8px;border-bottom-left-radius:4px}
+.fv-fair .fv-badge{background:rgba(0,212,170,.18);color:var(--a1)}
+.fv-disc .fv-badge{background:rgba(245,158,11,.18);color:var(--a2)}
+.fv-margin .fv-badge{background:rgba(167,139,250,.18);color:var(--a4)}
+.fv-icon{font-size:20px;margin-bottom:10px}
+.fv-name{font-size:9px;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px}
+.fv-fair .fv-name{color:rgba(0,212,170,.8)}.fv-disc .fv-name{color:rgba(245,158,11,.8)}.fv-margin .fv-name{color:rgba(167,139,250,.8)}
+.fv-val{font-family:'Bebas Neue';font-size:30px;letter-spacing:1px}
+.fv-fair .fv-val{color:var(--a1)}.fv-disc .fv-val{color:var(--a2)}.fv-margin .fv-val{color:var(--a4)}
+.fv-sub{font-size:11px;color:var(--tx3);margin-top:2px}
+.fv-pct{font-size:12px;font-weight:600;margin-top:6px;padding:3px 8px;border-radius:3px;display:inline-block}
+.fv-fair .fv-pct{background:rgba(0,212,170,.1);color:var(--a1)}.fv-disc .fv-pct{background:rgba(245,158,11,.1);color:var(--a2)}.fv-margin .fv-pct{background:rgba(167,139,250,.1);color:var(--a4)}
+.fv-rat{font-family:'IBM Plex Sans',sans-serif;font-size:12px;color:var(--tx3);line-height:1.6;margin-top:20px;border-top:1px solid var(--border);padding-top:16px}
+.fv-disclaimer{font-size:10px;color:var(--tx3);font-family:'IBM Plex Sans';font-style:italic;margin-top:16px;padding:10px 14px;border-left:2px solid var(--border);line-height:1.5}
+
+/* DIVIDEND & FLAGS PANEL */
+.div-metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:20px}
+@media(max-width:600px){.div-metrics{grid-template-columns:1fr}}
+.dm-card{background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:18px}
+.dm-title{font-size:9px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px}
+.dm-val{font-family:'Bebas Neue';font-size:40px;letter-spacing:1px;line-height:1}
+.dm-sub{font-size:10px;color:var(--tx3);margin-top:4px;font-family:'IBM Plex Sans'}
+.dm-conf{margin-top:10px}
+
+/* FLAGS */
+.flags-box{margin-top:16px}
+.flags-title{font-size:9px;color:var(--a2);letter-spacing:3px;text-transform:uppercase;margin-bottom:12px}
+.flag-item{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border-radius:4px;margin-bottom:8px;font-family:'IBM Plex Sans';font-size:12px;line-height:1.5}
+.flag-warn{background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.2);color:var(--a2)}
+.flag-ok{background:rgba(0,212,170,.07);border:1px solid rgba(0,212,170,.2);color:var(--a1)}
+.flag-info{background:rgba(59,130,246,.07);border:1px solid rgba(59,130,246,.2);color:var(--a3)}
+.no-flags{font-size:11px;color:var(--tx3);font-family:'IBM Plex Sans';font-style:italic;padding:10px 0}
+
+/* DATA SOURCES */
+.src-box{background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:14px 18px;margin-top:16px}
+.src-lbl{font-size:9px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px}
+.src-list{display:flex;flex-wrap:wrap;gap:8px}
+.src-tag{font-size:10px;color:var(--tx2);background:var(--bg2);border:1px solid var(--border);border-radius:3px;padding:3px 8px;font-family:'IBM Plex Sans'}
+
+/* CONFIDENCE TABLE */
+.ct{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px}
+.ct th{text-align:left;color:var(--tx3);font-size:9px;letter-spacing:2px;text-transform:uppercase;padding:6px 12px;border-bottom:1px solid var(--border);font-weight:400}
+.ct td{padding:10px 12px;border-bottom:1px solid var(--bg3);color:var(--tx2)}
+.ct tr:last-child td{border-bottom:none}
+.ct tr:hover td{background:rgba(255,255,255,.015)}
+.cs{font-family:'Bebas Neue';font-size:20px;letter-spacing:1px}
+.cb{height:4px;background:var(--bg3);border-radius:2px;margin-top:4px;width:90px}
+.cbf{height:100%;border-radius:2px}
+
+/* PROFILE BADGE */
+.profile-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(0,212,170,.08);border:1px solid rgba(0,212,170,.2);border-radius:4px;padding:6px 14px;font-size:10px;color:var(--a1);letter-spacing:2px;margin-left:12px}
+
+/* DEMO MODE */
+.demo-box{background:rgba(167,139,250,.07);border:1px solid rgba(167,139,250,.3);border-radius:6px;padding:20px 24px;margin-bottom:32px}
+.demo-title{font-size:10px;color:var(--a4);letter-spacing:3px;text-transform:uppercase;margin-bottom:8px}
+.demo-note{font-size:11px;color:var(--tx3);margin-bottom:16px;font-family:'IBM Plex Sans';line-height:1.6}
+.demo-tickers-lbl{font-size:10px;color:var(--tx3);letter-spacing:1px;margin-bottom:10px}
+.demo-btns{display:flex;gap:8px;flex-wrap:wrap}
+.demo-ticker-btn{background:rgba(167,139,250,.12);color:var(--a4);border:1px solid rgba(167,139,250,.3);border-radius:4px;padding:8px 18px;font-family:'IBM Plex Mono';font-size:13px;font-weight:700;letter-spacing:2px;cursor:pointer;transition:all .2s}
+.demo-ticker-btn:hover{background:rgba(167,139,250,.25);transform:translateY(-1px)}
+.demo-banner{display:flex;align-items:center;gap:10px;padding:10px 16px;border-radius:4px;margin-bottom:16px;font-size:11px;font-family:'IBM Plex Sans';font-weight:600;letter-spacing:1px;background:rgba(167,139,250,.1);border:1px solid rgba(167,139,250,.3);color:var(--a4)}
+
+/* CONVENTION DISCLAIMER (for –15% / –25% cards) */
+.conv-disclaimer{font-size:10px;color:var(--tx3);font-family:'IBM Plex Sans';font-style:italic;margin-top:8px;padding:8px 12px;background:rgba(255,255,255,.03);border-radius:3px;border-left:2px solid var(--border);line-height:1.5}
+.conv-tag{font-size:8px;letter-spacing:1px;text-transform:uppercase;padding:2px 6px;border-radius:2px;margin-bottom:6px;display:inline-block;background:rgba(255,255,255,.06);color:var(--tx3)}
+
+@media print{
+  .grid,.srch,.dl-btn,.hdr-r,.dq-warn,.api-box,.cache-tag,.demo-box,.demo-banner{display:none!important}
+  .app{background:white!important}
+  .panel,.dm-card{background:white!important;border:1px solid #ddd!important;break-inside:avoid;margin-bottom:10px}
+  .ph{background:#f5f5f5!important}.atxt{color:#333!important}
+  .big-tkr,.fv-val,.price-val,.cs,.dm-val{color:#000!important}
+  .big-tkr{font-size:48px!important}.pt{color:#000!important}
+  .sent-card,.fv-card{background:#f9f9f9!important;border:1px solid #ddd!important}
+  .wrap{max-width:100%!important}.cbadge{border:1px solid #ccc!important;background:#f5f5f5!important;color:#333!important}
+  body{background:white!important;color:#111!important}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="grid"></div>
+  <div class="wrap">
+
+    <!-- HEADER -->
+    <div class="hdr">
+      <div class="logo">FX</div>
+      <div>
+        <div class="logo-t">FINAXIS</div>
+        <div class="logo-s" id="subtitle">Terminal de Inteligencia Bursátil</div>
+      </div>
+      <div class="hdr-r">
+        <div class="lang-sw">
+          <button class="lang-btn active" onclick="setLang('es')" id="btn-es">🇪🇸<span class="lang-code">ES</span></button>
+          <button class="lang-btn" onclick="setLang('pt')" id="btn-pt">🇵🇹<span class="lang-code">PT</span></button>
+          <button class="lang-btn" onclick="setLang('en')" id="btn-en">🇬🇧<span class="lang-code">EN</span></button>
+        </div>
+        <div style="display:flex;align-items:center;gap:7px">
+          <div class="pulse"></div><div class="live-txt" id="live-txt">ANÁLISIS EN VIVO</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- API KEY BOX -->
+    <div class="api-box" id="api-box">
+      <div class="api-box-hdr">
+        <span style="font-size:16px">🔑</span>
+        <span class="api-lbl" id="api-lbl">Clave API de Anthropic</span>
+      </div>
+      <div class="api-note" id="api-note">Introduce tu clave de la API de Anthropic (console.anthropic.com). Se guarda solo en tu navegador (localStorage) y nunca se envía a ningún servidor externo. Necesaria para realizar análisis.</div>
+      <div class="api-row">
+        <input class="api-in" type="password" id="api-key-input" placeholder="sk-ant-api03-..."/>
+        <button class="api-save" onclick="saveApiKey()" id="api-save-btn">Guardar</button>
+      </div>
+      <div class="api-ok" id="api-ok" style="display:none;margin-top:10px">
+        <div class="api-ok-dot"></div>
+        <span id="api-ok-txt">Clave guardada · Listo para analizar</span>
+      </div>
+    </div>
+
+    <!-- DEMO MODE BOX (shown when no API key) -->
+    <div class="demo-box" id="demo-box" style="display:none">
+      <div class="demo-title" id="demo-title">MODO DEMO — Sin API key</div>
+      <div class="demo-note" id="demo-note">Análisis de ejemplo con datos reales de mercado. Los precios y métricas cambian diariamente — estos datos tienen fecha fija y son solo orientativos. Introduce tu API key para análisis en tiempo real.</div>
+      <div class="demo-tickers-lbl" id="demo-tickers-lbl">Elige una empresa para ver el análisis demo:</div>
+      <div class="demo-btns">
+        <button class="demo-ticker-btn" onclick="loadDemo('AAPL')">AAPL</button>
+        <button class="demo-ticker-btn" onclick="loadDemo('MSFT')">MSFT</button>
+        <button class="demo-ticker-btn" onclick="loadDemo('NVDA')">NVDA</button>
+        <button class="demo-ticker-btn" onclick="loadDemo('SAN')">SAN</button>
+      </div>
+    </div>
+
+    <!-- SEARCH -->
+    <div class="srch">
+      <div class="srch-lbl" id="search-lbl">— Introduce el ticker bursátil</div>
+      <div class="srch-row">
+        <input class="ticker-in" id="ticker-input" placeholder="AAPL" maxlength="10" oninput="this.value=this.value.toUpperCase()" onkeydown="if(event.key==='Enter')analyze()"/>
+        <button class="go-btn" id="go-btn" onclick="analyze()">▶ Analizar</button>
+        <span class="cache-tag" id="cache-tag">⚡ DESDE CACHÉ</span>
+      </div>
+    </div>
+
+    <!-- LOADING -->
+    <div class="ld" id="loading" style="display:none">
+      <div class="ld-tkr" id="ld-tkr"></div>
+      <div class="ld-bars"><div class="ld-b"></div><div class="ld-b"></div><div class="ld-b"></div><div class="ld-b"></div><div class="ld-b"></div><div class="ld-b"></div><div class="ld-b"></div></div>
+      <div class="ld-txt" id="ld-txt">PROCESANDO DATOS DE MERCADO</div>
+      <div class="ld-ph" id="ld-ph"></div>
+    </div>
+
+    <!-- ERROR -->
+    <div class="err" id="error-box"></div>
+
+    <!-- RESULTS -->
+    <div class="results" id="results"></div>
+
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════
+// TRANSLATIONS
+// ══════════════════════════════════════════════════════════
+const T = {
+  es:{
+    subtitle:"Terminal de Inteligencia Bursátil",
+    searchLabel:"— Introduce el ticker bursátil",
+    analyzeBtn:"▶ Analizar",analyzing:"Analizando...",processingData:"PROCESANDO DATOS DE MERCADO",
+    liveAnalysis:"ANÁLISIS EN VIVO",downloadPdf:"⤓ Descargar PDF",reportGenerated:"INFORME GENERADO",
+    phases:["Ejecutando búsquedas de mercado en tiempo real...","Buscando precio actual y rango 52 semanas...","Verificando datos de dividendo y payout ratio...","Analizando balance, deuda y acciones en circulación...","Analizando contexto macroeconómico...","Evaluando fundamentos y calidad de negocio...","Calculando precio razonable a largo plazo...","Evaluando alertas y señales de valor...","Evaluando fiabilidad de los datos...","Generando informe final..."],
+    macroLbl:"Macro",fundLbl:"Fundamental",techLbl:"Calidad",genLbl:"General",
+    currentPrice:"Precio actual",vsYest:"vs cierre anterior",
+    priceDataLbl:"DATOS DE PRECIO",
+    priceSourceNote:"Dato obtenido vía búsqueda web.",
+    delayWarn:"⚠ El precio puede tener un desfase de 15-20 min (datos de mercado en tiempo real requieren suscripción premium). Verifica siempre en tu broker antes de operar.",
+    realtimeOk:"✓ Precio en tiempo real confirmado vía búsqueda web.",
+    range52:"Rango 52 semanas",min52:"Mín. 52W",max52:"Máx. 52W",
+    fairValueTitle:"Precio Razonable · Inversor a Largo Plazo",
+    fvLabel:"Valor Razonable",discLabel:"Precio con Descuento",marginLabel:"Margen de Seguridad",
+    fvBadge:"ESTIMACIÓN",discBadge:"ENTRADA IDEAL",marginBadge:"PROTECCIÓN",
+    fvSub:"Estimación analítica",discSub:"Objetivo de entrada",marginSub:"Precio límite inferior",
+    vsPrice:"vs precio actual",
+    fvRationale:"▸ RAZONAMIENTO VALORACIÓN · ",
+    fvDisclaimer:"⚠ Estos valores son estimaciones analíticas basadas en múltiplos históricos y datos fundamentales. NO son precios garantizados. Siempre realiza tu propio análisis antes de invertir.",
+    divTitle:"Dividendo & Payout Actual",
+    dyLabel:"Dividend Yield actual",prLabel:"Payout Ratio actual",
+    confirmed:"CONFIRMADO",estimated:"ESTIMADO",notAvailable:"No disponible",
+    flagsTitle:"⚑ ALERTAS Y SEÑALES RELEVANTES",
+    noFlags:"Sin alertas destacables identificadas.",
+    macroTitle:"Macroeconómico",fundTitle:"Análisis Fundamental",qualityTitle:"Calidad del Negocio",confTitle:"Fiabilidad del Análisis",
+    confIntro:"Puntuación de 1–10 sobre la veracidad de cada campo. Alta = dato encontrado en web confirmado. Baja = estimación o sin fuente directa.",
+    cfld:"Campo",cscr:"Puntuación",cbar:"Fiabilidad",cnote:"Nota",
+    flds:{price_data:"Precio & Datos de Mercado",macro:"Análisis Macroeconómico",fundamental:"Análisis Fundamental",quality:"Calidad del Negocio",dividend_data:"Dividendo & Payout Actual",flags_data:"Alertas y Señales",fair_value:"Precio Razonable LP"},
+    icons:{price_data:"💰",macro:"🌍",fundamental:"📊",quality:"⭐",dividend_data:"💸",flags_data:"⚑",fair_value:"🎯"},
+    bull:"Alcista",bear:"Bajista",neutral:"Neutro",
+    apiKeyLbl:"Clave API de Anthropic",
+    apiKeyNote:"Introduce tu clave de la API de Anthropic (console.anthropic.com). Se guarda solo en tu navegador (localStorage) y nunca se envía a ningún servidor externo.",
+    apiKeySave:"Guardar",apiKeyOk:"Clave guardada · Listo para analizar",
+    errNoKey:"🔑 Introduce primero tu clave API de Anthropic en la sección superior.",
+    errCrypto:"🪙 Análisis de criptomonedas no disponible\n\nEsta aplicación está diseñada para renta variable (acciones y ETFs). Las criptomonedas no están incluidas.\n\nPrueba con: AAPL · MSFT · NVDA · TSLA · SAN · IBE · AMZN",
+    errInvalid:(t)=>`⚠ Ticker no reconocido: "${t}"\n\nNo se ha encontrado ninguna empresa cotizada con ese símbolo. Comprueba el ticker en Google Finance o en tu broker.\n\nEjemplos válidos: AAPL · MSFT · NVDA · TSLA · SAN · IBE · REP`,
+    errRate:()=>`⏱ Límite de uso alcanzado\n\nSe ha superado la cuota de solicitudes de la API. Espera unos minutos e inténtalo de nuevo.`,
+    errGen:(t,m)=>`No se pudo completar el análisis de "${t}".\n\n${m}`,
+    foot:"Análisis generado por IA con búsqueda web en tiempo real · Los precios pueden tener desfase · No constituye asesoramiento financiero · Verifica en fuentes oficiales antes de invertir",
+    noData:"Sin datos disponibles",dataSources:"FUENTES CONSULTADAS",
+    profileBadge:"📈 INVERSOR LARGO PLAZO",
+    cacheNote:"Análisis en caché",
+    demoTitle:"MODO DEMO — Sin API key",
+    demoNote:"Análisis de ejemplo con datos reales de mercado. Los precios y métricas cambian diariamente — estos datos tienen fecha fija y son solo orientativos. Introduce tu API key para análisis en tiempo real.",
+    demoBtn:"Ver análisis de ejemplo",
+    demoBanner:"⚠ DEMO · Datos con fecha fija · No son precios actuales · Solo para evaluar la interfaz",
+    demoTickers:"Elige una empresa para ver el análisis demo:",
+  },
+  pt:{
+    subtitle:"Terminal de Inteligência Bolsista",
+    searchLabel:"— Introduza o ticker bolsista",
+    analyzeBtn:"▶ Analisar",analyzing:"A analisar...",processingData:"A PROCESSAR DADOS DE MERCADO",
+    liveAnalysis:"ANÁLISE AO VIVO",downloadPdf:"⤓ Descarregar PDF",reportGenerated:"RELATÓRIO GERADO",
+    phases:["A executar pesquisas de mercado em tempo real...","A procurar preço atual e intervalo 52 semanas...","A verificar dados de dividendo e payout ratio...","A analisar balanço, dívida e ações em circulação...","A analisar contexto macroeconómico...","A avaliar fundamentos e qualidade do negócio...","A calcular preço razoável a longo prazo...","A avaliar alertas e sinais de valor...","A avaliar fiabilidade dos dados...","A gerar relatório final..."],
+    macroLbl:"Macro",fundLbl:"Fundamental",techLbl:"Qualidade",genLbl:"Geral",
+    currentPrice:"Preço atual",vsYest:"vs fecho anterior",
+    priceDataLbl:"DADOS DE PREÇO",
+    priceSourceNote:"Dado obtido via pesquisa web.",
+    delayWarn:"⚠ O preço pode ter um atraso de 15-20 min (dados de mercado em tempo real requerem subscrição premium). Verifique sempre no seu broker.",
+    realtimeOk:"✓ Preço em tempo real confirmado via pesquisa web.",
+    range52:"Intervalo 52 semanas",min52:"Mín. 52S",max52:"Máx. 52S",
+    fairValueTitle:"Preço Razoável · Investidor de Longo Prazo",
+    fvLabel:"Valor Razoável",discLabel:"Preço com Desconto",marginLabel:"Margem de Segurança",
+    fvBadge:"ESTIMATIVA",discBadge:"ENTRADA IDEAL",marginBadge:"PROTEÇÃO",
+    fvSub:"Estimativa analítica",discSub:"Objetivo de entrada",marginSub:"Preço limite inferior",
+    vsPrice:"vs preço atual",
+    fvRationale:"▸ RACIOCÍNIO DE VALORIZAÇÃO · ",
+    fvDisclaimer:"⚠ Estes valores são estimativas analíticas baseadas em múltiplos históricos e dados fundamentais. NÃO são preços garantidos. Realize sempre a sua própria análise antes de investir.",
+    divTitle:"Dividendo & Payout Atual",
+    dyLabel:"Dividend Yield atual",prLabel:"Payout Ratio atual",
+    confirmed:"CONFIRMADO",estimated:"ESTIMADO",notAvailable:"Não disponível",
+    flagsTitle:"⚑ ALERTAS E SINAIS RELEVANTES",
+    noFlags:"Sem alertas relevantes identificados.",
+    macroTitle:"Macroeconómico",fundTitle:"Análise Fundamental",qualityTitle:"Qualidade do Negócio",confTitle:"Fiabilidade da Análise",
+    confIntro:"Pontuação de 1–10 sobre a veracidade de cada campo. Alta = dado confirmado na web. Baixa = estimativa ou sem fonte direta.",
+    cfld:"Campo",cscr:"Pontuação",cbar:"Fiabilidade",cnote:"Nota",
+    flds:{price_data:"Preço & Dados de Mercado",macro:"Análise Macroeconómica",fundamental:"Análise Fundamental",quality:"Qualidade do Negócio",dividend_data:"Dividendo & Payout Atual",flags_data:"Alertas e Sinais",fair_value:"Preço Razoável LP"},
+    icons:{price_data:"💰",macro:"🌍",fundamental:"📊",quality:"⭐",dividend_data:"💸",flags_data:"⚑",fair_value:"🎯"},
+    bull:"Alta",bear:"Baixa",neutral:"Neutro",
+    apiKeyLbl:"Chave API da Anthropic",
+    apiKeyNote:"Introduza a sua chave da API da Anthropic (console.anthropic.com). É guardada apenas no seu browser (localStorage) e nunca é enviada para servidores externos.",
+    apiKeySave:"Guardar",apiKeyOk:"Chave guardada · Pronto para analisar",
+    errNoKey:"🔑 Introduza primeiro a sua chave API da Anthropic na secção superior.",
+    errCrypto:"🪙 Análise de criptomoedas não disponível\n\nEsta aplicação destina-se a ações e ETFs cotados em bolsa.\n\nExperimente: AAPL · MSFT · NVDA · TSLA · EDP · GALP · NOS",
+    errInvalid:(t)=>`⚠ Ticker não reconhecido: "${t}"\n\nNão foi encontrada nenhuma empresa cotada com esse símbolo. Verifique no Google Finance ou no seu broker.`,
+    errRate:()=>`⏱ Limite de utilização atingido\n\nFoi ultrapassada a quota de pedidos da API. Aguarde alguns minutos.`,
+    errGen:(t,m)=>`Não foi possível concluir a análise de "${t}".\n\n${m}`,
+    foot:"Análise gerada por IA com pesquisa web em tempo real · Preços podem ter desfasamento · Não constitui aconselhamento financeiro · Verifique em fontes oficiais antes de investir",
+    noData:"Sem dados disponíveis",dataSources:"FONTES CONSULTADAS",
+    profileBadge:"📈 INVESTIDOR LONGO PRAZO",
+    cacheNote:"Análise em cache",
+    demoTitle:"MODO DEMO — Sem chave API",
+    demoNote:"Análise de exemplo com dados reais de mercado. Os preços e métricas mudam diariamente — estes dados têm data fixa e são apenas orientativos. Introduza a sua chave API para análise em tempo real.",
+    demoBtn:"Ver análise de exemplo",
+    demoBanner:"⚠ DEMO · Dados com data fixa · Não são preços atuais · Apenas para avaliar a interface",
+    demoTickers:"Escolha uma empresa para ver a análise demo:",
+  },
+  en:{
+    subtitle:"Stock Market Intelligence Terminal",
+    searchLabel:"— Enter a stock ticker",
+    analyzeBtn:"▶ Analyze",analyzing:"Analyzing...",processingData:"PROCESSING MARKET DATA",
+    liveAnalysis:"LIVE ANALYSIS",downloadPdf:"⤓ Download PDF",reportGenerated:"REPORT GENERATED",
+    phases:["Running real-time market searches...","Fetching current price & 52-week range...","Verifying dividend & payout ratio data...","Analyzing balance sheet, debt & shares outstanding...","Analyzing macroeconomic context...","Evaluating fundamentals & business quality...","Calculating reasonable long-term price...","Evaluating value signals & red flags...","Assessing data reliability...","Generating final report..."],
+    macroLbl:"Macro",fundLbl:"Fundamental",techLbl:"Quality",genLbl:"Overall",
+    currentPrice:"Current price",vsYest:"vs previous close",
+    priceDataLbl:"PRICE DATA",
+    priceSourceNote:"Data retrieved via web search.",
+    delayWarn:"⚠ Price may have a 15-20 min delay (real-time market data requires a premium subscription). Always verify with your broker before trading.",
+    realtimeOk:"✓ Real-time price confirmed via web search.",
+    range52:"52-week range",min52:"52W Low",max52:"52W High",
+    fairValueTitle:"Reasonable Price · Long-Term Investor",
+    fvLabel:"Fair Value",discLabel:"Discounted Price",marginLabel:"Margin of Safety",
+    fvBadge:"ESTIMATE",discBadge:"IDEAL ENTRY",marginBadge:"PROTECTION",
+    fvSub:"Analytical estimate",discSub:"Entry target",marginSub:"Lower price limit",
+    vsPrice:"vs current price",
+    fvRationale:"▸ VALUATION RATIONALE · ",
+    fvDisclaimer:"⚠ These values are analytical estimates based on historical multiples and fundamental data. They are NOT guaranteed prices. Always do your own research before investing.",
+    divTitle:"Current Dividend & Payout",
+    dyLabel:"Current Dividend Yield",prLabel:"Current Payout Ratio",
+    confirmed:"CONFIRMED",estimated:"ESTIMATED",notAvailable:"Not available",
+    flagsTitle:"⚑ KEY ALERTS & SIGNALS",
+    noFlags:"No notable alerts identified.",
+    macroTitle:"Macroeconomic",fundTitle:"Fundamental Analysis",qualityTitle:"Business Quality",confTitle:"Analysis Reliability",
+    confIntro:"Score 1–10 on the accuracy of each field. High = confirmed from web sources. Low = estimate or no direct source found.",
+    cfld:"Field",cscr:"Score",cbar:"Reliability",cnote:"Note",
+    flds:{price_data:"Price & Market Data",macro:"Macroeconomic Analysis",fundamental:"Fundamental Analysis",quality:"Business Quality",dividend_data:"Current Dividend & Payout",flags_data:"Alerts & Signals",fair_value:"Reasonable Price LT"},
+    icons:{price_data:"💰",macro:"🌍",fundamental:"📊",quality:"⭐",dividend_data:"💸",flags_data:"⚑",fair_value:"🎯"},
+    bull:"Bullish",bear:"Bearish",neutral:"Neutral",
+    apiKeyLbl:"Anthropic API Key",
+    apiKeyNote:"Enter your Anthropic API key (console.anthropic.com). It is stored only in your browser (localStorage) and never sent to any external server.",
+    apiKeySave:"Save",apiKeyOk:"Key saved · Ready to analyze",
+    errNoKey:"🔑 Please enter your Anthropic API key in the section above first.",
+    errCrypto:"🪙 Cryptocurrency analysis not available\n\nThis app is designed for listed equities and ETFs only.\n\nTry: AAPL · MSFT · NVDA · TSLA · AMZN · META · GOOGL",
+    errInvalid:(t)=>`⚠ Unrecognized ticker: "${t}"\n\nNo listed company found with that symbol. Check the ticker on Google Finance or your broker.`,
+    errRate:()=>`⏱ Usage limit reached\n\nThe API request quota has been exceeded. Please wait a few minutes and try again.`,
+    errGen:(t,m)=>`Could not complete the analysis for "${t}".\n\n${m}`,
+    foot:"AI-generated analysis with real-time web search · Prices may have a time lag · Not financial advice · Always verify in official sources before investing",
+    noData:"No data available",dataSources:"SOURCES CONSULTED",
+    profileBadge:"📈 LONG-TERM INVESTOR",
+    cacheNote:"Cached analysis",
+    demoTitle:"DEMO MODE — No API key",
+    demoNote:"Sample analysis with real market data. Prices and metrics change daily — this data has a fixed date and is indicative only. Enter your API key for real-time analysis.",
+    demoBtn:"View sample analysis",
+    demoBanner:"⚠ DEMO · Fixed-date data · Not current prices · For interface evaluation only",
+    demoTickers:"Choose a company to see the demo analysis:",
+  }
+};
+
+const CRYPTOS=new Set(["BTC","ETH","BNB","XRP","ADA","SOL","DOGE","DOT","MATIC","LTC","AVAX","LINK","UNI","ATOM","XLM","VET","ICP","FIL","TRX","ETC","ALGO","MANA","SAND","AXS","THETA","FTM","HBAR","EGLD","NEAR","ONE","FLOW","ROSE","KLAY","ENJ","CHZ","BAT","ZIL","HOT","CELO","QTUM","WAVES","XTZ","DASH","ZEC","EOS","BCH","BSV","XMR","NEO","IOTA","LUNA","UST","USDT","USDC","BUSD","DAI","SHIB","PEPE","WIF","BONK","SUI","APT","ARB","OP","INJ","SEI","TIA","PYTH","JTO","STRK","BTCUSDT","ETHUSDT","BNBUSDT","SOLUSDT"]);
+
+// ══════════════════════════════════════════════════════════
+// DEMO DATA — pre-generated analyses, fixed date
+// Prices reflect approx. Feb 2025 levels (indicative only)
+// ══════════════════════════════════════════════════════════
+const DEMO_DATA = {
+  AAPL: {
+    ticker:"AAPL", company_name:"Apple Inc.", sector:"Technology", country:"United States",
+    exchange:"NASDAQ", currency:"USD", current_price:227.48, price_change_pct:0.82,
+    price_is_realtime:false,
+    price_source_note:"DEMO — precio orientativo de Feb 2025. No es el precio actual de mercado.",
+    week52_low:164.08, week52_high:260.10, market_cap:"3.4T USD",
+    fair_value_low:200.00, fair_value_high:240.00, fair_value_mid:220.00,
+    margin_of_safety_price:176.00,
+    fair_value_rationale:"Valoración basada en múltiplos históricos: P/E ~28x sobre BPA estimado de $7.8 para 2025, EV/EBITDA ~22x. Targets de analistas en rango $210-$250. El modelo de servicios (App Store, iCloud, Apple TV+) reduce la ciclicidad y justifica prima sobre el sector. Estimación moderada-conservadora.",
+    dividend_yield_current:0.45, dividend_yield_confirmed:true,
+    payout_ratio_current:15.2, payout_ratio_confirmed:true,
+    flags:[
+      {type:"ok", text:"Recompra de acciones muy activa: Apple recompró $90B en acciones en 2024, reduciendo el float consistentemente."},
+      {type:"ok", text:"Caja neta positiva: ~$50B de caja neta tras deuda. Balance sólido."},
+      {type:"warn", text:"Dependencia de iPhone: el 52% de los ingresos sigue viniendo del iPhone. Cualquier ciclo de actualización débil impacta los resultados."},
+      {type:"info", text:"Expansión de servicios: los ingresos por servicios crecen al 13% anual y tienen márgenes del 74%, mejorando la calidad del negocio."}
+    ],
+    data_sources:["finance.yahoo.com","macrotrends.net","wsj.com","DEMO"],
+    macro:"[DEMO] El entorno macroeconómico para Apple en 2025 está marcado por la política monetaria de la Fed, que mantiene tipos en zona restrictiva pero con expectativas de recortes graduales. La inflación en EE.UU. ha moderado hacia el 2.5-3%, lo que favorece el consumo de bienes de alta gama. El mercado laboral sigue robusto, sosteniendo la demanda de dispositivos premium. El riesgo geopolítico más relevante para Apple es la tensión EE.UU.-China: el 18% de las ventas proviene de la Gran China, y cualquier escalada arancelaria o restricción de acceso al mercado chino afectaría directamente los ingresos. La diversificación de la cadena de suministro hacia India (iPhone 16 producido parcialmente allí) mitiga parcialmente este riesgo a largo plazo.",
+    fundamental:"[DEMO] Apple genera ~$390B en ingresos anuales con un margen operativo del 31% y un FCF de ~$110B, lo que la convierte en una de las mayores generadoras de caja del mundo. El BPA ajustado ronda los $6.50-$7.00 para el año fiscal 2024. El ROE supera el 150% debido al agresivo programa de recompras que ha reducido el equity contable. La deuda bruta es de ~$100B pero la caja de ~$150B deja una posición neta cómoda. El P/E actual (~29x) está en la parte alta del rango histórico de 5 años (18-32x), sin margen de seguridad amplio a los precios actuales. El dividendo es simbólico (0.45%) pero el retorno total vía recompras es mucho más relevante: Apple ha eliminado el 40% de sus acciones en circulación en la última década.",
+    quality:"[DEMO] Apple posee uno de los fosos competitivos más profundos del mundo: el ecosistema iOS crea costes de cambio altísimos para el usuario (datos, apps, hábitos, accesorios). La marca premium permite mantener márgenes superiores a cualquier competidor en hardware. El segmento de servicios (App Store, iCloud, Apple Pay, Apple TV+) genera ingresos recurrentes de alta visibilidad y márgenes ~74%, transformando a Apple de empresa de hardware a plataforma de servicios con hardware. La calidad de gestión bajo Tim Cook ha sido financieramente disciplinada: capital allocation excepcional vía recompras. El riesgo estructural a largo plazo es la maduración del mercado de smartphones en mercados desarrollados y la competencia china en mercados emergentes (Huawei, Xiaomi).",
+    macro_sentiment:"Neutro", fundamental_sentiment:"Alcista", quality_sentiment:"Alcista", overall:"Alcista",
+    confidence:{
+      price_data:3, price_data_note:"DEMO — precio de referencia Feb 2025, no tiempo real.",
+      macro:5, macro_note:"DEMO — análisis de contexto general, no búsqueda web en tiempo real.",
+      fundamental:5, fundamental_note:"DEMO — métricas aproximadas del año fiscal 2024.",
+      quality:7, quality_note:"DEMO — análisis cualitativo del moat, relativamente estable.",
+      dividend_data:6, dividend_data_note:"DEMO — yield y payout de referencia, puede haber variado.",
+      flags_data:5, flags_data_note:"DEMO — flags basadas en conocimiento general.",
+      fair_value:4, fair_value_note:"DEMO — estimación orientativa. Siempre verifica con análisis actualizado."
+    },
+    date:"Demo · Datos de referencia Feb 2025", _isDemo:true
+  },
+  MSFT: {
+    ticker:"MSFT", company_name:"Microsoft Corporation", sector:"Technology", country:"United States",
+    exchange:"NASDAQ", currency:"USD", current_price:415.32, price_change_pct:-0.34,
+    price_is_realtime:false,
+    price_source_note:"DEMO — precio orientativo de Feb 2025. No es el precio actual de mercado.",
+    week52_low:385.58, week52_high:468.35, market_cap:"3.1T USD",
+    fair_value_low:380.00, fair_value_high:450.00, fair_value_mid:415.00,
+    margin_of_safety_price:332.00,
+    fair_value_rationale:"Valoración basada en P/E ~32x sobre BPA estimado de $13 para FY2025, EV/EBITDA ~24x. El crecimiento de Azure (cloud) al 28-30% anual y la integración de IA (Copilot) justifican una prima respecto al mercado. Targets de analistas en rango $400-$490. La valoración actual está en zona justa-ligeramente cara para un inversor de largo plazo conservador.",
+    dividend_yield_current:0.72, dividend_yield_confirmed:true,
+    payout_ratio_current:24.5, payout_ratio_confirmed:true,
+    flags:[
+      {type:"ok", text:"Crecimiento de Azure sostenido: cloud crece ~28% anual, con backlog de contratos de $235B que da visibilidad a largo plazo."},
+      {type:"ok", text:"Integración de IA: Copilot integrado en el ecosistema Office/Azure es una ventaja competitiva real que acelera la adopción empresarial."},
+      {type:"info", text:"Adquisición de Activision Blizzard ($69B): aumentó la deuda pero diversifica hacia gaming. Integración en curso."},
+      {type:"warn", text:"Valoración exigente: cotiza a >32x beneficios. Cualquier decepción en el crecimiento de Azure podría generar una corrección significativa."}
+    ],
+    data_sources:["finance.yahoo.com","macrotrends.net","DEMO"],
+    macro:"[DEMO] Microsoft se beneficia del ciclo de inversión empresarial en IA y cloud que es estructural y multianual. La política fiscal expansiva en EE.UU. sostiene el gasto corporativo en IT. El riesgo regulatorio antimonopolio en Europa (Teams, bundling) es real pero manejable. Los tipos de interés altos tienen un impacto menor en Microsoft dado que es net cash y sus clientes empresariales tienen contratos plurianuales.",
+    fundamental:"[DEMO] Microsoft genera ~$245B en ingresos con margen operativo del 44% y FCF de ~$90B anuales. El segmento Intelligent Cloud (Azure) representa el 43% de los ingresos y crece al 28% anual. El segmento Productivity (Office 365, LinkedIn) crece al 12% con márgenes altísimos. El balance es net cash tras la integración de Activision. BPA ~$12.50-$13.00 para FY2025. ROE del 38%.",
+    quality:"[DEMO] Microsoft tiene uno de los fosos competitivos más amplios del sector tech: dominio en software empresarial (Office, Teams, Azure Active Directory) con costes de cambio enormes para las empresas. La posición en cloud (Azure, #2 mundial) con crecimiento superior a la industria. La apuesta por IA vía inversión en OpenAI y Copilot es la más integrada del sector. Gestión de Satya Nadella con track record excepcional de transformación y asignación de capital.",
+    macro_sentiment:"Alcista", fundamental_sentiment:"Alcista", quality_sentiment:"Alcista", overall:"Alcista",
+    confidence:{
+      price_data:3, price_data_note:"DEMO — precio de referencia Feb 2025.",
+      macro:5, macro_note:"DEMO — análisis general.",
+      fundamental:5, fundamental_note:"DEMO — métricas FY2024 aproximadas.",
+      quality:7, quality_note:"DEMO — moat muy estable y bien documentado.",
+      dividend_data:6, dividend_data_note:"DEMO — yield y payout de referencia.",
+      flags_data:5, flags_data_note:"DEMO — flags de conocimiento general.",
+      fair_value:4, fair_value_note:"DEMO — estimación orientativa."
+    },
+    date:"Demo · Datos de referencia Feb 2025", _isDemo:true
+  },
+  NVDA: {
+    ticker:"NVDA", company_name:"NVIDIA Corporation", sector:"Semiconductors", country:"United States",
+    exchange:"NASDAQ", currency:"USD", current_price:138.85, price_change_pct:2.15,
+    price_is_realtime:false,
+    price_source_note:"DEMO — precio orientativo de Feb 2025. No es el precio actual de mercado.",
+    week52_low:47.32, week52_high:153.13, market_cap:"3.4T USD",
+    fair_value_low:100.00, fair_value_high:160.00, fair_value_mid:130.00,
+    margin_of_safety_price:104.00,
+    fair_value_rationale:"Valoración extremadamente difícil dado el crecimiento explosivo. P/E ~35x sobre BPA FY2026 estimado de $4.00, asumiendo desaceleración desde el crecimiento actual. Targets de analistas en rango $130-$200. El rango amplio refleja la incertidumbre real: si el ciclo de inversión en IA se sostiene, NVDA está barata; si hay normalización brusca, está cara. Estimación conservadora para inversor de largo plazo.",
+    dividend_yield_current:0.03, dividend_yield_confirmed:true,
+    payout_ratio_current:1.1, payout_ratio_confirmed:true,
+    flags:[
+      {type:"warn", text:"Concentración de clientes: los hyperscalers (Microsoft, Google, Amazon, Meta) representan ~40% de los ingresos. Un frenazo en su capex de IA impactaría directamente."},
+      {type:"warn", text:"Restricciones de exportación a China: el gobierno de EE.UU. ha limitado la venta de chips H100/H200 a China, reduciendo el TAM accesible."},
+      {type:"ok", text:"CUDA como foso competitivo: el ecosistema de software CUDA tiene 4 millones de desarrolladores y es casi imposible de replicar en el corto plazo."},
+      {type:"info", text:"Blackwell (GB200): la nueva arquitectura tiene demanda que supera la oferta. TSMC tiene capacidad limitada, lo que podría retrasar entregas pero también sostiene los precios."}
+    ],
+    data_sources:["finance.yahoo.com","DEMO"],
+    macro:"[DEMO] NVIDIA es el principal beneficiario del ciclo de inversión en infraestructura de IA. Los grandes modelos de lenguaje (LLMs) requieren miles de GPUs H100/H200/Blackwell para entrenamiento e inferencia. Este ciclo de inversión es estructural (2024-2028 según la mayoría de analistas) pero inevitablemente cíclico. El riesgo macro más relevante es una recesión en EE.UU. que frene el capex tecnológico, o una burbuja en las valoraciones de startups de IA que reduzca la demanda de infraestructura.",
+    fundamental:"[DEMO] NVIDIA ha pasado de $27B de ingresos en FY2023 a ~$130B estimados en FY2025, un crecimiento sin precedentes en la historia de los semiconductores. El margen bruto del segmento Data Center supera el 75%. El FCF es enorme pero la valoración actual ya descuenta varios años de crecimiento acelerado. BPA FY2025 estimado: ~$2.90-$3.10 (ajustado por splits). La posición de caja neta es sólida (~$26B). El mayor riesgo fundamental es la normalización del ciclo de inversión en IA.",
+    quality:"[DEMO] El foso de NVIDIA descansa en tres pilares: hardware superior (arquitecturas GPU con ventaja de 2-3 generaciones sobre AMD/Intel), software CUDA (ecosistema de 4M+ desarrolladores con años de código escrito para CUDA), y relación con los hyperscalers (co-diseño de chips, roadmap compartido). La capacidad de innovación de Jensen Huang y su equipo es reconocida en la industria. El riesgo cualitativo más serio es la amenaza de que los hyperscalers diseñen sus propios chips (Google TPU, AWS Trainium, Microsoft Maia) reduciendo la dependencia de NVDA.",
+    macro_sentiment:"Alcista", fundamental_sentiment:"Alcista", quality_sentiment:"Alcista", overall:"Alcista",
+    confidence:{
+      price_data:3, price_data_note:"DEMO — precio de referencia Feb 2025.",
+      macro:5, macro_note:"DEMO — análisis general del ciclo IA.",
+      fundamental:4, fundamental_note:"DEMO — métricas de muy alto crecimiento, muy sujetas a revisión.",
+      quality:6, quality_note:"DEMO — análisis del moat relativamente estable.",
+      dividend_data:7, dividend_data_note:"DEMO — dividendo casi simbólico, bien documentado.",
+      flags_data:5, flags_data_note:"DEMO — flags de conocimiento general.",
+      fair_value:3, fair_value_note:"DEMO — valoración muy incierta dado el crecimiento explosivo. Rango amplio intencionalmente."
+    },
+    date:"Demo · Datos de referencia Feb 2025", _isDemo:true
+  },
+  SAN: {
+    ticker:"SAN", company_name:"Banco Santander S.A.", sector:"Banca", country:"España",
+    exchange:"BME", currency:"EUR", current_price:5.42, price_change_pct:0.56,
+    price_is_realtime:false,
+    price_source_note:"DEMO — precio orientativo de Feb 2025. No es el precio actual de mercado.",
+    week52_low:3.90, week52_high:5.65, market_cap:"92B EUR",
+    fair_value_low:4.80, fair_value_high:6.20, fair_value_mid:5.50,
+    margin_of_safety_price:4.40,
+    fair_value_rationale:"Valoración basada en P/BV ~0.75x sobre valor en libros estimado de $7.3/acción para 2025, y P/E ~7x sobre BPA estimado de €0.78. Los bancos europeos cotizan con descuento estructural respecto a americanos. Targets de analistas en rango €5.00-€6.50. La elevada rentabilidad actual (ROTE >15%) podría comprimir el descuento si se mantiene. Valoración atractiva para perfil largo plazo.",
+    dividend_yield_current:4.35, dividend_yield_confirmed:true,
+    payout_ratio_current:52.0, payout_ratio_confirmed:true,
+    flags:[
+      {type:"ok", text:"Rentabilidad récord: ROTE del 15.9% en 2024, el más alto en 15 años. El beneficio neto superó los €12.5B."},
+      {type:"ok", text:"Diversificación geográfica: presencia en 10 mercados core (España, Brasil, México, EE.UU., UK...) reduce la dependencia de un solo ciclo económico."},
+      {type:"warn", text:"Exposición a Brasil (23% del beneficio): el real brasileño es volátil y la economía brasileña cíclica. Una crisis en EM impacta significativamente."},
+      {type:"warn", text:"Reducción de acciones en circulación lenta: el programa de recompras existe pero el dilución histórica por ampliaciones de capital ha sido un lastre para el accionista."},
+      {type:"info", text:"Tipos de interés a la baja en Europa: la bajada de tipos del BCE reducirá el margen de intereses neto gradualmente desde 2025-2026."}
+    ],
+    data_sources:["finance.yahoo.com","bolsamadrid.es","DEMO"],
+    macro:"[DEMO] Banco Santander opera en un entorno donde el BCE ha iniciado el ciclo de bajadas de tipos (desde el 4% al 3% en 2024, con más bajadas esperadas). Esto comprimirá los márgenes de intereses netos gradualmente, aunque el efecto completo tarda 12-18 meses en materializarse. La economía española crece por encima de la media europea (+2.7% PIB en 2024), lo que beneficia al negocio doméstico. Los mercados emergentes (Brasil, México) aportan crecimiento pero también volatilidad cambiaria.",
+    fundamental:"[DEMO] Santander generó un beneficio atribuido récord de €12.5B en 2024 (+14% vs 2023). El margen de intereses neto es robusto pero empezará a normalizarse con las bajadas del BCE. La ratio CET1 (capital) está en 12.5%, cómoda por encima de los mínimos regulatorios. El dividendo actual implica un yield del 4.3% con un payout sostenible del 52%. La ratio de morosidad está bajo control (~3%). BPA ~€0.75-€0.80 estimado para 2025.",
+    quality:"[DEMO] Santander tiene un modelo de negocio de banca universal diversificado geográficamente que le da resiliencia ante crisis locales. La marca es sólida en todos sus mercados core. El riesgo cualitativo más importante para un inversor largo plazo es la regulación bancaria creciente (Basilea IV, requerimientos de capital) y la disrupción digital (neobancos, fintech). Openbank (su banco 100% digital) es una respuesta estratégica relevante. La gestión de Ana Botín ha priorizado rentabilidad sobre crecimiento del balance, lo que es positivo para el accionista.",
+    macro_sentiment:"Neutro", fundamental_sentiment:"Alcista", quality_sentiment:"Neutro", overall:"Alcista",
+    confidence:{
+      price_data:3, price_data_note:"DEMO — precio de referencia Feb 2025.",
+      macro:5, macro_note:"DEMO — análisis del entorno europeo/EM.",
+      fundamental:5, fundamental_note:"DEMO — métricas del ejercicio 2024.",
+      quality:6, quality_note:"DEMO — análisis del modelo bancario.",
+      dividend_data:6, dividend_data_note:"DEMO — yield y payout de referencia 2024.",
+      flags_data:5, flags_data_note:"DEMO — flags de conocimiento general.",
+      fair_value:4, fair_value_note:"DEMO — valoración bancaria por P/BV y P/E. Estimación orientativa."
+    },
+    date:"Demo · Datos de referencia Feb 2025", _isDemo:true
+  }
+};
+
+// ══════════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════════
+let lang = 'es';
+let currentResult = null;
+let phaseTimer = null;
+
+// ══════════════════════════════════════════════════════════
+// CACHE (localStorage, 4h TTL)
+// ══════════════════════════════════════════════════════════
+const CACHE_TTL = 4 * 60 * 60 * 1000; // 4 hours
+function cacheKey(ticker, lang){ return `finaxis_v2_${ticker}_${lang}`; }
+function getCache(ticker, lang){
+  try{
+    const raw = localStorage.getItem(cacheKey(ticker, lang));
+    if(!raw) return null;
+    const obj = JSON.parse(raw);
+    if(Date.now() - obj.ts > CACHE_TTL){ localStorage.removeItem(cacheKey(ticker, lang)); return null; }
+    return obj.data;
+  }catch(_){ return null; }
+}
+function setCache(ticker, lang, data){
+  try{ localStorage.setItem(cacheKey(ticker, lang), JSON.stringify({ts:Date.now(), data})); }catch(_){}
+}
+
+// ══════════════════════════════════════════════════════════
+// API KEY
+// ══════════════════════════════════════════════════════════
+function loadApiKey(){ return localStorage.getItem('finaxis_api_key')||''; }
+function saveApiKey(){
+  const key = document.getElementById('api-key-input').value.trim();
+  if(!key){ return; }
+  localStorage.setItem('finaxis_api_key', key);
+  showApiOk();
+  updateDemoBoxVisibility();
+}
+function showApiOk(){
+  const key = loadApiKey();
+  if(key){
+    document.getElementById('api-ok').style.display='flex';
+    document.getElementById('api-key-input').value='sk-ant-••••••••••••••••';
+    document.getElementById('api-ok-txt').textContent = T[lang].apiKeyOk;
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// LANG
+// ══════════════════════════════════════════════════════════
+function setLang(l){
+  lang = l;
+  ['es','pt','en'].forEach(c=>{
+    document.getElementById('btn-'+c).classList.toggle('active', c===l);
+  });
+  const t = T[l];
+  document.getElementById('subtitle').textContent = t.subtitle;
+  document.getElementById('search-lbl').textContent = t.searchLabel;
+  document.getElementById('go-btn').textContent = t.analyzeBtn;
+  document.getElementById('live-txt').textContent = t.liveAnalysis;
+  document.getElementById('api-lbl').textContent = t.apiKeyLbl;
+  document.getElementById('api-note').textContent = t.apiKeyNote;
+  document.getElementById('api-save-btn').textContent = t.apiKeySave;
+  document.getElementById('api-ok-txt').textContent = t.apiKeyOk;
+  // Demo box texts
+  const demoTitle = document.getElementById('demo-title');
+  const demoNote  = document.getElementById('demo-note');
+  const demoLbl   = document.getElementById('demo-tickers-lbl');
+  if(demoTitle) demoTitle.textContent = t.demoTitle;
+  if(demoNote)  demoNote.textContent  = t.demoNote;
+  if(demoLbl)   demoLbl.textContent   = t.demoTickers;
+  if(currentResult) renderResults(currentResult, false);
+}
+
+// ══════════════════════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════════════════════
+function n(v,d=2){ const x=parseFloat(v); return isNaN(x)?'—':x.toLocaleString('es-ES',{minimumFractionDigits:d,maximumFractionDigits:d}); }
+function pct(a,b){ if(!a||!b||isNaN(a)||isNaN(b)) return null; const d=((a-b)/b)*100; return (d>=0?'+':'')+d.toFixed(1)+'%'; }
+function cl(v,lo,hi){ return hi===lo?0:Math.max(0,Math.min(100,((v-lo)/(hi-lo))*100)); }
+function sentClass(s){
+  if(!s) return 'neutral';
+  const v=s.toLowerCase();
+  if(v.includes('bull')||v.includes('alcista')||v.includes('alta')||v.includes('positiv')) return 'bull';
+  if(v.includes('bear')||v.includes('bajista')||v.includes('baixa')||v.includes('negativ')) return 'bear';
+  return 'neutral';
+}
+function confColor(s){ return s>=7?'var(--a1)':s>=5?'var(--a2)':'var(--red)'; }
+function confClass(s){ return s>=7?'ch':s>=5?'cm':'cl'; }
+function avgConf(c){
+  if(!c) return 0;
+  const vals=['price_data','macro','fundamental','quality','dividend_data','flags_data','fair_value'].map(k=>parseFloat(c[k])||0);
+  return vals.reduce((a,b)=>a+b,0)/vals.length;
+}
+function confBadge(score){
+  if(score==null) return '';
+  return `<span class="cbadge ${confClass(score)}"><span class="cdot"></span>${score}/10</span>`;
+}
+
+// ══════════════════════════════════════════════════════════
+// PROMPT — Long-term investor oriented, anti-hallucination
+// ══════════════════════════════════════════════════════════
+function buildPrompt(ticker, lang){
+  const langMap={es:"Redacta TODO en español.",pt:"Redige TODO em português de Portugal.",en:"Write EVERYTHING in English."};
+  const li=langMap[lang];
+  const BULL=lang==='en'?'Bullish':lang==='pt'?'Alta':'Alcista';
+  const BEAR=lang==='en'?'Bearish':lang==='pt'?'Baixa':'Bajista';
+  const NEUT=lang==='en'?'Neutral':'Neutro';
+
+  return `You are an expert financial analyst specialising in long-term value investing. ${li}
+
+## TASK
+Analyse the stock ticker: ${ticker}
+
+## MANDATORY SEARCH PROTOCOL — perform ALL searches before writing:
+1. "${ticker} stock price today current 2025"
+2. "${ticker} 52-week high low range 2025"
+3. "${ticker} dividend yield payout ratio current 2025"
+4. "${ticker} net debt shares outstanding dilution 2025"
+5. "${ticker} P/E EV/EBITDA fair value intrinsic value analyst target 2025"
+6. "${ticker} financial results earnings quality moat 2025"
+
+Do NOT skip any search. Do NOT fabricate data you did not find.
+
+## FAIR VALUE — INSTRUCCIONES CRÍTICAS (lee con atención):
+- fair_value_low, fair_value_high, fair_value_mid: SOLO rellena si encontraste en búsqueda web AL MENOS UNO de: (a) target de analistas con precio concreto, (b) múltiplo P/E o EV/EBITDA con BPA estimado concreto, (c) valoración DCF de fuente reconocida. Si no encontraste ninguno de estos, devuelve null en los tres campos.
+- Si encontraste targets de analistas, úsalos como referencia principal y cítalos explícitamente en fair_value_rationale.
+- Si solo tienes el P/E actual y el BPA del último año, puedes estimar un rango usando múltiplos históricos del sector, pero marca confidence fair_value ≤ 5 y explícalo en fair_value_note.
+- NUNCA inventes un precio razonable basándote solo en el precio actual o en intuición general. Si no hay datos, null.
+- fair_value_note SIEMPRE debe explicar exactamente qué datos encontraste y qué metodología usaste. Si es estimación propia, dilo explícitamente.
+- margin_of_safety_price: si tienes fair_value_mid, calcula como fair_value_mid × 0.75 (25% de descuento). Si fair_value_mid es null, también null.
+
+## INVESTOR PROFILE: LONG-TERM / BUY & HOLD
+This analysis is for a long-term buy-and-hold investor, NOT a trader. Focus on:
+- Business quality, competitive moat, earnings power
+- Fair/intrinsic value estimation (not short-term trading levels)
+- Dividend sustainability and payout ratio health
+- Debt trends and share dilution/buyback flags
+- Long-term risks and structural tailwinds/headwinds
+
+## HONESTY RULES (CRITICAL):
+- If you cannot find an exact numeric value via web search, use null for that field.
+- NEVER invent specific financial figures. Qualitative commentary is acceptable.
+- For price_is_realtime: set true ONLY if you found the price on a source clearly showing today's date and intraday data (e.g. Yahoo Finance with today's date). Otherwise false.
+- Confidence scores: confirmed via web = 7-9, reasoned estimate = 4-6, guessed = 1-3.
+- For fair_value_low and fair_value_high: base on DCF, P/E, EV/EBITDA multiples found in search. If no data found, use null. ALWAYS confidence ≤ 7 for these.
+- For flags: list only real, verifiable concerns or positives. Do not invent flags.
+
+## OUTPUT — respond ONLY with this exact JSON (no markdown, no extra text):
+{
+  "company_name": "Full legal company name",
+  "sector": "Sector",
+  "country": "Country",
+  "exchange": "Primary exchange",
+  "currency": "USD",
+  "current_price": 123.45,
+  "price_change_pct": 1.23,
+  "price_is_realtime": true,
+  "price_source_note": "Brief note: where was price found and is it real-time or delayed?",
+  "week52_low": 100.00,
+  "week52_high": 200.00,
+  "market_cap": "e.g. 2.8T USD",
+  "fair_value_low": 140.00,
+  "fair_value_high": 165.00,
+  "fair_value_mid": 152.50,
+  "margin_of_safety_price": 122.00,
+  "fair_value_rationale": "3-4 sentence explanation of the valuation methodology used: which multiples, what analyst targets found, what DCF assumptions. Be explicit about what was found vs estimated.",
+  "dividend_yield_current": 2.15,
+  "dividend_yield_confirmed": true,
+  "payout_ratio_current": 38.5,
+  "payout_ratio_confirmed": true,
+  "flags": [
+    {"type": "warn|ok|info", "text": "Concise flag description. E.g.: 'Deuda neta aumentó 40% interanual — revisar tendencia' or 'Recompra activa de acciones — positivo para accionistas'"}
+  ],
+  "data_sources": ["source1.com", "source2.com"],
+  "macro": "Macroeconomic analysis (min 200 words): global context, monetary policy, interest rates, inflation, sector trends, geopolitical risks specific to this company.",
+  "fundamental": "Fundamental analysis for long-term investor (min 250 words): business model quality, revenue trends, operating margins, FCF generation, balance sheet, key valuation ratios FOUND (P/E, EV/EBITDA, P/FCF, ROE, ROIC — flag estimated vs confirmed), competitive moat, dividend policy and sustainability. Explicitly state which figures were found via search.",
+  "quality": "Business quality & long-term outlook (min 200 words): competitive advantages (moat), management quality signals, industry positioning, structural growth or decline trends, ESG considerations if relevant, key long-term risks. This section replaces technical analysis for long-term investors.",
+  "macro_sentiment": "${BULL} | ${NEUT} | ${BEAR}",
+  "fundamental_sentiment": "${BULL} | ${NEUT} | ${BEAR}",
+  "quality_sentiment": "${BULL} | ${NEUT} | ${BEAR}",
+  "overall": "${BULL} | ${NEUT} | ${BEAR}",
+  "confidence": {
+    "price_data": 8, "price_data_note": "Was price confirmed for today? Was 52W range found?",
+    "macro": 7, "macro_note": "Is macro based on recent sources or general knowledge?",
+    "fundamental": 6, "fundamental_note": "Which ratios confirmed vs estimated? Source?",
+    "quality": 6, "quality_note": "Is moat analysis based on confirmed data or general knowledge?",
+    "dividend_data": 7, "dividend_data_note": "Was current yield/payout found in search? Which source?",
+    "flags_data": 6, "flags_data_note": "Are flags based on confirmed data or inferred?",
+    "fair_value": 5, "fair_value_note": "Always ≤7. What methodology? Confirmed targets vs estimates?"
+  }
+}
+
+Replace pipe-separated sentiment options with EXACTLY ONE option shown. Use null (not 0, not N/A) for unconfirmed numeric fields.`;
+}
+
+// ══════════════════════════════════════════════════════════
+// SAFE HELPERS — null/undefined proof
+// ══════════════════════════════════════════════════════════
+function safe(v, fallback='—'){ return (v != null && v !== '' && !Number.isNaN(v)) ? v : fallback; }
+function safeNum(v){ const x = parseFloat(v); return isNaN(x) ? null : x; }
+function safeStr(v, fallback='—'){ return (v && String(v).trim()) ? String(v).trim() : fallback; }
+function safeArr(v){ return Array.isArray(v) ? v : []; }
+function safeConf(c, key){ if(!c || c[key] == null) return 0; const x = parseFloat(c[key]); return isNaN(x) ? 0 : x; }
+function safeNote(c, key){ return (c && c[key+'_note'] && String(c[key+'_note']).trim()) ? String(c[key+'_note']).trim() : ''; }
+
+// ══════════════════════════════════════════════════════════
+// RENDER
+// ══════════════════════════════════════════════════════════
+function renderResults(r, fromCache){
+  const t = T[lang];
+  const isDemo = !!r._isDemo;
+  const cur = safeStr(r.currency, '');
+  const chg = safeNum(r.price_change_pct);
+  const chgOk = chg !== null;
+  const chgCol = chgOk ? (chg >= 0 ? 'var(--a1)' : 'var(--red)') : 'var(--tx3)';
+  const lo = safeNum(r.week52_low) || 0;
+  const hi = safeNum(r.week52_high) || 0;
+  const price = safeNum(r.current_price) || 0;
+  const fvMid = safeNum(r.fair_value_mid);
+  const fvLo = safeNum(r.fair_value_low);
+  const fvHi = safeNum(r.fair_value_high);
+  const mos = safeNum(r.margin_of_safety_price) || (fvMid ? fvMid * 0.75 : null);
+  const conf = r.confidence || {};
+  const avg = avgConf(conf);
+
+  // Price bar positions (safe)
+  const pricePct = (hi > lo) ? cl(price, lo, hi) : 50;
+  const fvLoPct  = (hi > lo && fvLo) ? cl(fvLo, lo, hi) : null;
+  const fvHiPct  = (hi > lo && fvHi) ? cl(fvHi, lo, hi) : null;
+  const showFvBar = fvLoPct !== null && fvHiPct !== null;
+
+  // Data quality banner
+  let dqCls, dqIcon, dqMsg;
+  if(avg >= 7){ dqCls='dq-ok'; dqIcon='✓'; dqMsg=lang==='en'?'Good data quality — most fields confirmed via web search.':lang==='pt'?'Boa qualidade dos dados — maioria confirmada via pesquisa web.':'Buena calidad de datos — mayoría de campos confirmados vía búsqueda web.'; }
+  else if(avg >= 5){ dqCls='dq-mid'; dqIcon='⚠'; dqMsg=lang==='en'?'Moderate data quality — some fields are estimates. Check the reliability table.':lang==='pt'?'Qualidade moderada — alguns campos são estimativas.':'Calidad moderada — algunos campos son estimaciones. Revisa la tabla de fiabilidad.'; }
+  else { dqCls='dq-low'; dqIcon='⚠'; dqMsg=lang==='en'?'Low data quality — many fields could not be confirmed. Treat all figures with caution.':lang==='pt'?'Qualidade baixa — muitos campos não confirmados.':'Calidad baja — muchos campos no pudieron confirmarse. Usa los datos con precaución.'; }
+
+  const sentLabels = [t.macroLbl, t.fundLbl, t.techLbl, t.genLbl];
+  const sentKeys   = ['macro_sentiment','fundamental_sentiment','quality_sentiment','overall'];
+
+  // Flags — safe
+  const flags = safeArr(r.flags);
+  const flagsHtml = flags.length === 0
+    ? `<div class="no-flags">${t.noFlags}</div>`
+    : flags.map(f => {
+        const ftype = safeStr(f && f.type, 'info');
+        const ftext = safeStr(f && f.text, '');
+        const icon  = ftype==='warn' ? '⚠' : ftype==='ok' ? '✓' : 'ℹ';
+        return `<div class="flag-item flag-${ftype}">${icon} ${ftext}</div>`;
+      }).join('');
+
+  // Confidence fields
+  const confFields = ['price_data','macro','fundamental','quality','dividend_data','flags_data','fair_value'];
+
+  // Convention labels for –15% / –25% cards
+  const convLabel = lang==='en' ? 'CONVENTION –15% (not model estimate)' : lang==='pt' ? 'CONVENÇÃO –15% (não estimativa do modelo)' : 'CONVENCIÓN –15% (no estimación del modelo)';
+  const convLabel2 = lang==='en' ? 'CONVENTION –25% (not model estimate)' : lang==='pt' ? 'CONVENÇÃO –25% (não estimativa do modelo)' : 'CONVENCIÓN –25% (no estimación del modelo)';
+  const convNote = lang==='en'
+    ? 'These two prices are fixed conventions (–15% and –25% off fair value mid), not estimates generated by the AI model. They serve as reference thresholds for entry discipline.'
+    : lang==='pt'
+    ? 'Estes dois preços são convenções fixas (–15% e –25% sobre o valor justo médio), não estimativas geradas pelo modelo de IA. Servem como limites de referência para disciplina de entrada.'
+    : 'Estos dos precios son convenciones fijas (–15% y –25% sobre el valor razonable medio), no estimaciones generadas por el modelo de IA. Sirven como umbrales de referencia para la disciplina de entrada.';
+
+  // Dividend values — safe
+  const dyVal = safeNum(r.dividend_yield_current);
+  const prVal = safeNum(r.payout_ratio_current);
+  const dyConfirmed = !!r.dividend_yield_confirmed;
+  const prConfirmed = !!r.payout_ratio_confirmed;
+  const prColor = prVal === null ? 'var(--tx2)' : prVal > 80 ? 'var(--red)' : prVal > 60 ? 'var(--a2)' : 'var(--a1)';
+
+  // Build HTML
+  const html = `
+    ${isDemo ? `<div class="demo-banner">🎭 ${t.demoBanner}</div>` : ''}
+
+    <div class="res-hdr">
+      <div>
+        <div class="big-tkr">${safeStr(r.ticker)}</div>
+        <div class="co-name">${safeStr(r.company_name)}</div>
+        <div class="co-meta">${safeStr(r.sector)} · ${safeStr(r.country)} · ${safeStr(r.exchange)}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:12px">
+        <button class="dl-btn" onclick="window.print()">${t.downloadPdf}</button>
+        <div class="rpt-meta">${t.reportGenerated}<br/><span class="rpt-date">${safeStr(r.date)}</span></div>
+        ${fromCache && !isDemo ? `<span style="font-size:9px;color:var(--a2);letter-spacing:1px">⚡ ${t.cacheNote}</span>` : ''}
+      </div>
+    </div>
+
+    <!-- SENTIMENTS -->
+    <div class="sent-row">
+      ${sentKeys.map((k,i) => `
+        <div class="sent-card">
+          <div class="sent-lbl">${sentLabels[i]}</div>
+          <div class="sent-val ${sentClass(r[k])}">${safeStr(r[k])}</div>
+        </div>
+      `).join('')}
+    </div>
+    <div class="div-line"></div>
+
+    <!-- DATA QUALITY BANNER -->
+    <div class="dq-warn ${dqCls}"><span style="font-size:16px">${dqIcon}</span><span>${dqMsg} <strong>Avg: ${avg.toFixed(1)}/10</strong></span></div>
+
+    <!-- 01 PRICE PANEL -->
+    <div class="panel c3">
+      <div class="ph">
+        <div class="pn">01</div>
+        <div class="pt">${t.priceDataLbl}</div>
+        <div class="ptag">MARKET DATA</div>
+        ${confBadge(safeConf(conf,'price_data'))}
+      </div>
+      <div class="pb">
+        <div class="price-row">
+          <div class="price-blk">
+            <div class="price-lbl">${t.currentPrice}</div>
+            <div class="price-val">${safeNum(r.current_price) !== null ? n(r.current_price) : '—'}<span class="price-cur">${cur}</span></div>
+            ${chgOk ? `<div class="chg-row">
+              <span style="color:${chgCol};font-size:18px">${chg >= 0 ? '▲' : '▼'}</span>
+              <span class="chg-v" style="color:${chgCol}">${Math.abs(chg).toFixed(2)}%</span>
+              <span style="font-size:10px;color:var(--tx3)">${t.vsYest}</span>
+            </div>` : ''}
+            ${r.market_cap ? `<div style="font-size:11px;color:var(--tx3);margin-top:6px">Cap. ${safeStr(r.market_cap)}</div>` : ''}
+            <div class="${r.price_is_realtime ? 'dq-warn dq-ok' : 'delay-warn'}" style="margin-top:10px;font-size:10px">
+              ${r.price_is_realtime ? t.realtimeOk : t.delayWarn}
+            </div>
+            ${r.price_source_note ? `<div class="price-note">${safeStr(r.price_source_note)}</div>` : ''}
+          </div>
+          <div class="w52-blk">
+            <div class="w52-lbl">${t.range52}</div>
+            <div class="w52-ext">
+              <div class="ext-lo"><div class="ext-v">${safeNum(r.week52_low) !== null ? n(r.week52_low) : '—'} ${cur}</div><div class="ext-l">${t.min52}</div></div>
+              <div class="ext-hi"><div class="ext-v">${safeNum(r.week52_high) !== null ? n(r.week52_high) : '—'} ${cur}</div><div class="ext-l">${t.max52}</div></div>
+            </div>
+            <div class="rbar">
+              <div class="rbar-grad"></div>
+              ${showFvBar ? `<div style="position:absolute;top:-3px;height:16px;border-radius:3px;left:${fvLoPct}%;width:${Math.max(fvHiPct-fvLoPct,2)}%;background:rgba(0,212,170,.2);border:1px solid var(--a1);z-index:4"></div>` : ''}
+              <div style="position:absolute;left:${pricePct}%;top:50%;transform:translate(-50%,-50%);z-index:6;width:3px;height:22px;background:var(--tx);border-radius:2px"></div>
+            </div>
+            <div class="rleg">
+              <div class="rleg-i"><div style="width:3px;height:14px;background:var(--tx);border-radius:2px"></div><span class="rleg-t">${t.currentPrice}</span></div>
+              ${showFvBar ? `<div class="rleg-i"><div style="width:12px;height:8px;background:rgba(0,212,170,.2);border:1px solid var(--a1);border-radius:2px"></div><span class="rleg-t">${t.fvLabel}</span></div>` : ''}
+            </div>
+          </div>
+        </div>
+
+        <!-- FAIR VALUE CARDS -->
+        <div class="fv-grid">
+          <!-- Card 1: Fair Value (model estimate) -->
+          <div class="fv-card fv-fair">
+            <div class="fv-badge">${t.fvBadge}</div>
+            <div class="fv-icon">🎯</div>
+            <div class="fv-name">${t.fvLabel}</div>
+            <div class="fv-val">${(fvLo && fvHi) ? `${n(fvLo)} – ${n(fvHi)}` : (fvMid ? n(fvMid) : '—')}</div>
+            <div class="fv-sub">${cur} · ${t.fvSub}</div>
+            <div class="fv-pct">${(fvMid && price) ? pct(fvMid, price) + ' ' + t.vsPrice : '—'}</div>
+          </div>
+          <!-- Card 2: –15% CONVENTION (not model) -->
+          <div class="fv-card fv-disc">
+            <div class="fv-badge" style="background:rgba(255,255,255,.06);color:var(--tx3)">${convLabel}</div>
+            <div class="fv-icon">📉</div>
+            <div class="fv-name">${t.discLabel}</div>
+            <div class="fv-val">${fvMid ? n(fvMid * 0.85) : '—'}</div>
+            <div class="fv-sub">${cur} · ${t.discSub} (–15%)</div>
+            <div class="fv-pct">${(fvMid && price) ? pct(fvMid * 0.85, price) + ' ' + t.vsPrice : '—'}</div>
+          </div>
+          <!-- Card 3: –25% CONVENTION (not model) -->
+          <div class="fv-card fv-margin">
+            <div class="fv-badge" style="background:rgba(255,255,255,.06);color:var(--tx3)">${convLabel2}</div>
+            <div class="fv-icon">🛡</div>
+            <div class="fv-name">${t.marginLabel}</div>
+            <div class="fv-val">${mos ? n(mos) : '—'}</div>
+            <div class="fv-sub">${cur} · ${t.marginSub} (–25%)</div>
+            <div class="fv-pct">${(mos && price) ? pct(mos, price) + ' ' + t.vsPrice : '—'}</div>
+          </div>
+        </div>
+        <!-- Convention disclaimer -->
+        ${fvMid ? `<div class="conv-disclaimer">${convNote}</div>` : ''}
+        ${r.fair_value_rationale ? `<div class="fv-rat"><span style="color:var(--tx2);font-weight:600;letter-spacing:1px">${t.fvRationale}</span>${safeStr(r.fair_value_rationale)}</div>` : ''}
+        <div class="fv-disclaimer">${t.fvDisclaimer}</div>
+
+        ${r.data_sources && safeArr(r.data_sources).length > 0 ? `
+        <div class="src-box">
+          <div class="src-lbl">${t.dataSources}</div>
+          <div class="src-list">${safeArr(r.data_sources).map(s => `<span class="src-tag">${safeStr(s)}</span>`).join('')}</div>
+        </div>` : ''}
+      </div>
+    </div>
+
+    <!-- 02 MACRO -->
+    <div class="panel c1">
+      <div class="ph">
+        <div class="pn">02</div><div class="pt">${t.macroTitle}</div>
+        <div class="ptag">MACRO</div>${confBadge(safeConf(conf,'macro'))}
+      </div>
+      <div class="pb"><div class="atxt">${safeStr(r.macro,'—')}</div></div>
+    </div>
+
+    <!-- 03 FUNDAMENTAL -->
+    <div class="panel c2">
+      <div class="ph">
+        <div class="pn">03</div><div class="pt">${t.fundTitle}</div>
+        <div class="ptag">FUND</div>${confBadge(safeConf(conf,'fundamental'))}
+      </div>
+      <div class="pb">
+        <div class="atxt" style="margin-bottom:24px">${safeStr(r.fundamental,'—')}</div>
+
+        <!-- DIVIDEND METRICS -->
+        <div style="font-size:9px;color:var(--a2);letter-spacing:3px;text-transform:uppercase;margin-bottom:14px">${t.divTitle}</div>
+        <div class="div-metrics">
+          <div class="dm-card">
+            <div class="dm-title">${t.dyLabel}</div>
+            <div class="dm-val" style="color:var(--a1)">${dyVal !== null ? dyVal.toFixed(2) + '%' : '—'}</div>
+            <div class="dm-sub">${dyVal !== null ? (dyConfirmed ? `✓ ${t.confirmed}` : `~ ${t.estimated}`) : t.notAvailable}</div>
+            <div class="dm-conf">${confBadge(safeConf(conf,'dividend_data'))}</div>
+          </div>
+          <div class="dm-card">
+            <div class="dm-title">${t.prLabel}</div>
+            <div class="dm-val" style="color:${prColor}">${prVal !== null ? prVal.toFixed(1) + '%' : '—'}</div>
+            <div class="dm-sub">${prVal !== null ? (prConfirmed ? `✓ ${t.confirmed}` : `~ ${t.estimated}`) : t.notAvailable}</div>
+            <div class="dm-conf">${confBadge(safeConf(conf,'dividend_data'))}</div>
+          </div>
+        </div>
+
+        <!-- FLAGS -->
+        <div class="flags-box">
+          <div class="flags-title">${t.flagsTitle}</div>
+          ${flagsHtml}
+        </div>
+      </div>
+    </div>
+
+    <!-- 04 BUSINESS QUALITY -->
+    <div class="panel c3">
+      <div class="ph">
+        <div class="pn">04</div><div class="pt">${t.qualityTitle}</div>
+        <div class="ptag">QUALITY</div>${confBadge(safeConf(conf,'quality'))}
+      </div>
+      <div class="pb"><div class="atxt">${safeStr(r.quality,'—')}</div></div>
+    </div>
+
+    <!-- 05 CONFIDENCE TABLE -->
+    <div class="panel c4">
+      <div class="ph">
+        <div class="pn">05</div><div class="pt">${t.confTitle}</div>
+        <div class="ptag">CONFIDENCE</div>
+      </div>
+      <div class="pb">
+        <div style="font-size:12px;color:var(--tx3);margin-bottom:16px;line-height:1.6;font-family:'IBM Plex Sans'">${t.confIntro}</div>
+        <table class="ct">
+          <thead><tr><th>${t.cfld}</th><th>${t.cscr}</th><th>${t.cbar}</th><th>${t.cnote}</th></tr></thead>
+          <tbody>
+            ${confFields.map(f => {
+              const s = safeConf(conf, f);
+              const note = safeNote(conf, f);
+              const icon = (t.icons && t.icons[f]) ? t.icons[f] : '';
+              const label = (t.flds && t.flds[f]) ? t.flds[f] : f;
+              return `<tr>
+                <td>${icon} ${label}</td>
+                <td><span class="cs" style="color:${confColor(s)}">${s}</span><span style="font-size:10px;color:var(--tx3)">/10</span></td>
+                <td><div class="cb"><div class="cbf" style="width:${s*10}%;background:${confColor(s)}"></div></div></td>
+                <td style="font-family:'IBM Plex Sans';font-size:11px;color:var(--tx3);max-width:280px">${note || '—'}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div style="font-size:10px;color:var(--tx3);letter-spacing:1px;margin-top:24px;text-align:center;line-height:1.9">
+      FINAXIS · ${t.foot}<br/>${safeStr(r.date)}
+    </div>
+  `;
+
+  document.getElementById('results').innerHTML = html;
+  document.getElementById('results').classList.add('visible');
+  document.getElementById('cache-tag').classList.toggle('visible', fromCache && !isDemo);
+}
+// ══════════════════════════════════════════════════════════
+// ANALYZE
+// ══════════════════════════════════════════════════════════
+async function analyze(){
+  const ticker = document.getElementById('ticker-input').value.trim().toUpperCase();
+  if(!ticker) return;
+  const t = T[lang];
+
+  const apiKey = loadApiKey();
+  if(!apiKey){ showError('gen', t.errNoKey); return; }
+
+  if(CRYPTOS.has(ticker)){ showError('cryp', t.errCrypto); return; }
+
+  // Check cache
+  const cached = getCache(ticker, lang);
+  if(cached){
+    currentResult = cached;
+    clearError();
+    document.getElementById('loading').style.display='none';
+    renderResults(cached, true);
+    return;
+  }
+
+  // Start loading
+  setLoading(true, ticker, t);
+
+  try{
+    const resp = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true',
+      },
+      body: JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:8000,
+        tool_choice:{type:'any'},
+        tools:[{type:'web_search_20250305',name:'web_search'}],
+        messages:[{role:'user',content:buildPrompt(ticker,lang)}],
+      }),
+    });
+
+    const data = await resp.json();
+
+    if(data.error){
+      const es = JSON.stringify(data.error);
+      if(es.includes('exceeded')||es.includes('rate_limit')||es.includes('overloaded')){
+        showError('rate', t.errRate()); return;
+      }
+      throw new Error(data.error.message||es);
+    }
+
+    const fullText = (data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('\n');
+    const match = fullText.replace(/```json|```/g,'').match(/\{[\s\S]*\}/);
+
+    if(!match){ showError('inv', t.errInvalid(ticker)); return; }
+
+    let parsed;
+    try{ parsed = JSON.parse(match[0]); }
+    catch(_){ showError('inv', t.errInvalid(ticker)); return; }
+
+    const co=(parsed.company_name||'').toLowerCase();
+    if(!co||co==='unknown'||co.includes('not found')||co.includes('no encontrad')||co.includes('não encontrad')){
+      showError('inv', t.errInvalid(ticker)); return;
+    }
+
+    const result = {
+      ...parsed, ticker,
+      date: new Date().toLocaleDateString(lang==='en'?'en-GB':lang==='pt'?'pt-PT':'es-ES',{day:'2-digit',month:'long',year:'numeric'}),
+    };
+
+    setCache(ticker, lang, result);
+    currentResult = result;
+    clearError();
+    renderResults(result, false);
+
+  }catch(e){
+    const m = e.message||'';
+    if(m.includes('exceeded')||m.includes('rate_limit')){
+      showError('rate', t.errRate());
+    } else {
+      showError('gen', t.errGen(ticker, m));
+    }
+  }finally{
+    setLoading(false);
+  }
+}
+
+function setLoading(on, ticker, t){
+  document.getElementById('loading').style.display = on?'block':'none';
+  document.getElementById('results').classList.remove('visible');
+  document.getElementById('cache-tag').classList.remove('visible');
+  if(on){
+    document.getElementById('ld-tkr').textContent = ticker;
+    document.getElementById('ld-txt').textContent = (t||T[lang]).processingData;
+    document.getElementById('go-btn').textContent = (t||T[lang]).analyzing;
+    document.getElementById('go-btn').disabled = true;
+    let pi=0;
+    const phases=(t||T[lang]).phases;
+    document.getElementById('ld-ph').textContent = phases[0];
+    phaseTimer = setInterval(()=>{pi=Math.min(pi+1,phases.length-1);document.getElementById('ld-ph').textContent=phases[pi];},3500);
+  } else {
+    clearInterval(phaseTimer);
+    document.getElementById('go-btn').textContent = T[lang].analyzeBtn;
+    document.getElementById('go-btn').disabled = false;
+    document.getElementById('loading').style.display='none';
+  }
+}
+
+function showError(type, msg){
+  const box=document.getElementById('error-box');
+  box.textContent=msg;
+  box.className=`err visible err-${type}`;
+  setLoading(false);
+}
+function clearError(){
+  const box=document.getElementById('error-box');
+  box.className='err';
+}
+
+// ══════════════════════════════════════════════════════════
+// DEMO
+// ══════════════════════════════════════════════════════════
+function loadDemo(ticker){
+  const data = DEMO_DATA[ticker];
+  if(!data) return;
+  clearError();
+  document.getElementById('ticker-input').value = ticker;
+  currentResult = data;
+  renderResults(data, false);
+  // Scroll to results
+  setTimeout(()=>{ document.getElementById('results').scrollIntoView({behavior:'smooth', block:'start'}); }, 100);
+}
+
+function updateDemoBoxVisibility(){
+  const hasKey = !!loadApiKey();
+  const demoBox = document.getElementById('demo-box');
+  if(demoBox) demoBox.style.display = hasKey ? 'none' : 'block';
+}
+
+// ══════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════
+(function init(){
+  showApiOk();
+  updateDemoBoxVisibility();
+})();
+</script>
+</body>
+</html>
