@@ -1,0 +1,2032 @@
+<!DOCTYPE html>
+<!-- AXIOS-IQ Stock Analyzer · v12.0 · ἄξιος — "of just value" -->
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>AXIOS-IQ · Terminal de Inteligencia Bursátil</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;700&family=Bebas+Neue&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#070a0e;--bg2:#0d1117;--bg3:#111820;
+  --border:#1e2d3d;
+  --a1:#00d4aa;--a2:#f59e0b;--a3:#3b82f6;--a4:#a78bfa;
+  --red:#ef4444;
+  --tx:#e2e8f0;--tx2:#94a3b8;--tx3:#475569;
+  --glow:0 0 20px rgba(0,212,170,.15);
+}
+body{background:var(--bg);color:var(--tx);font-family:'IBM Plex Mono',monospace;min-height:100vh}
+.app{min-height:100vh;background:var(--bg);position:relative;overflow-x:hidden}
+.grid{position:fixed;inset:0;background-image:linear-gradient(rgba(0,212,170,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,170,.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
+.wrap{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:40px 24px}
+
+/* API KEY INPUT */
+.api-box{background:var(--bg2);border:1px solid rgba(245,158,11,.3);border-radius:6px;padding:20px 24px;margin-bottom:32px;transition:border-color .3s}
+.api-box.gemini-mode{border-color:rgba(59,130,246,.45)}
+.api-box-hdr{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.api-lbl{font-size:10px;color:var(--a2);letter-spacing:3px;text-transform:uppercase}
+/* PROVIDER TOGGLE */
+.prov-sw{display:flex;gap:0;background:var(--bg3);border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-bottom:14px}
+.prov-btn{flex:1;background:none;border:none;border-right:1px solid var(--border);cursor:pointer;padding:9px 12px;font-family:'IBM Plex Mono';font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--tx3);transition:all .2s;display:flex;align-items:center;justify-content:center;gap:7px;white-space:nowrap}
+.prov-btn:last-child{border-right:none}
+.prov-btn:hover{color:var(--tx);background:rgba(255,255,255,.04)}
+.prov-btn.sel-ant{background:rgba(245,158,11,.1);color:var(--a2)}
+.prov-btn.sel-gem{background:rgba(59,130,246,.1);color:var(--a3)}
+.prov-badge{font-size:8px;padding:1px 5px;border-radius:2px;margin-left:3px}
+.prov-badge-pay{background:rgba(245,158,11,.15);color:var(--a2)}
+.prov-badge-free{background:rgba(59,130,246,.15);color:var(--a3)}
+/* GEMINI NOTICES */
+.gem-warn{background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.2);border-radius:4px;padding:12px 16px;margin-top:12px;font-size:11px;color:#93c5fd;font-family:'IBM Plex Sans';line-height:1.7;display:none}
+.gem-warn.on{display:block}
+.gem-warn a{color:#93c5fd;font-weight:600}
+.gem-howto{background:rgba(59,130,246,.04);border:1px solid rgba(59,130,246,.12);border-radius:4px;padding:14px 18px;margin-top:8px;font-size:11px;color:var(--tx3);font-family:'IBM Plex Sans';line-height:1.8;display:none}
+.gem-howto.on{display:block}
+.gem-howto strong{color:var(--a3)}
+.gem-howto ol{padding-left:18px;margin-top:6px}
+.gem-howto li{margin-bottom:3px}
+.api-note{font-size:11px;color:var(--tx3);margin-bottom:12px;font-family:'IBM Plex Sans';line-height:1.5}
+.api-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.api-in{flex:1;min-width:240px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:10px 14px;font-family:'IBM Plex Mono';font-size:12px;color:var(--a2);outline:none;transition:border-color .2s,color .2s}
+.api-in:focus{border-color:var(--a2)}
+.api-in.gem-in{color:var(--a3)}
+.api-in.gem-in:focus{border-color:var(--a3)}
+.api-in::placeholder{color:var(--tx3)}
+.api-save{background:rgba(245,158,11,.15);color:var(--a2);border:1px solid var(--a2);border-radius:4px;padding:10px 20px;font-family:'IBM Plex Mono';font-size:11px;font-weight:700;letter-spacing:2px;cursor:pointer;transition:all .2s;text-transform:uppercase;white-space:nowrap}
+.api-save:hover{background:rgba(245,158,11,.28)}
+.api-save.gem-save{background:rgba(59,130,246,.15);color:var(--a3);border-color:var(--a3)}
+.api-save.gem-save:hover{background:rgba(59,130,246,.28)}
+.api-ok{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--a1)}
+.api-ok-dot{width:8px;height:8px;border-radius:50%;background:var(--a1)}
+
+
+/* NO-REALTIME WARNING (Gemini sin grounding) */
+.no-rt-banner{background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.28);border-radius:4px;padding:11px 16px;margin-bottom:18px;font-family:'IBM Plex Sans';font-size:11px;color:var(--a2);line-height:1.7}
+.no-rt-banner strong{color:#fcd34d}
+
+/* HEADER */
+.hdr{display:flex;align-items:center;gap:16px;margin-bottom:48px;flex-wrap:wrap}
+.axios-logo-wrap{display:flex;align-items:center;gap:12px;flex-shrink:0}
+.axios-logo-wrap svg{filter:drop-shadow(0 0 14px rgba(0,212,170,.5))}
+.logo-t{font-family:'Bebas Neue';font-size:32px;letter-spacing:4px;color:var(--tx);line-height:1}
+.logo-iq{font-family:'Bebas Neue';font-size:32px;color:var(--a1);letter-spacing:4px;margin-left:0}
+.logo-s{font-size:10px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-top:4px}
+.hdr-r{margin-left:auto;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.pulse{width:6px;height:6px;border-radius:50%;background:var(--a1);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.live-txt{font-size:10px;color:var(--tx3);letter-spacing:2px}
+
+/* LANG */
+.lang-sw{display:flex;gap:0;align-items:center;background:var(--bg3);border:1px solid var(--border);border-radius:6px;overflow:hidden}
+.lang-btn{background:none;border:none;border-right:1px solid var(--border);cursor:pointer;padding:6px 10px;font-size:18px;transition:all .2s;opacity:.4;line-height:1;display:flex;align-items:center;gap:5px}
+.lang-btn:last-child{border-right:none}
+.lang-btn:hover{opacity:.75;background:rgba(255,255,255,.04)}
+.lang-btn.active{opacity:1;background:rgba(0,212,170,.12)}
+.lang-code{font-size:9px;color:var(--tx3);letter-spacing:1px;font-family:'IBM Plex Mono'}
+.lang-btn.active .lang-code{color:var(--a1)}
+
+/* SEARCH */
+.srch{margin-bottom:40px}
+.srch-lbl{font-size:10px;color:var(--a1);letter-spacing:3px;text-transform:uppercase;margin-bottom:12px}
+.srch-row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.ticker-in{flex:1;max-width:240px;background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:14px 20px;font-family:'IBM Plex Mono';font-size:22px;font-weight:700;color:var(--a1);letter-spacing:4px;text-transform:uppercase;outline:none;transition:all .2s}
+.ticker-in::placeholder{color:var(--tx3);font-weight:300;letter-spacing:2px;font-size:16px}
+.ticker-in:focus{border-color:var(--a1);box-shadow:var(--glow)}
+.go-btn{background:var(--a1);color:var(--bg);border:none;border-radius:4px;padding:14px 32px;font-family:'IBM Plex Mono';font-size:13px;font-weight:700;letter-spacing:2px;cursor:pointer;transition:all .2s;text-transform:uppercase;white-space:nowrap}
+.go-btn:hover:not(:disabled){background:#00f5c0;transform:translateY(-1px);box-shadow:0 4px 20px rgba(0,212,170,.4)}
+.go-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.cache-tag{font-size:9px;color:var(--a2);background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2);border-radius:3px;padding:3px 8px;letter-spacing:1px;display:none}
+.cache-tag.visible{display:inline-block}
+
+/* LOADING */
+.ld{padding:60px 0;text-align:center}
+.ld-tkr{font-family:'Bebas Neue';font-size:80px;color:var(--a1);opacity:.12;letter-spacing:8px}
+.ld-bars{display:flex;gap:4px;justify-content:center;margin:24px 0}
+.ld-b{width:3px;background:var(--a1);border-radius:2px;animation:ba 1.2s ease-in-out infinite}
+.ld-b:nth-child(1){height:20px;animation-delay:0s}.ld-b:nth-child(2){height:35px;animation-delay:.1s}.ld-b:nth-child(3){height:25px;animation-delay:.2s}.ld-b:nth-child(4){height:40px;animation-delay:.3s}.ld-b:nth-child(5){height:20px;animation-delay:.4s}.ld-b:nth-child(6){height:30px;animation-delay:.5s}.ld-b:nth-child(7){height:15px;animation-delay:.6s}
+@keyframes ba{0%,100%{opacity:.3;transform:scaleY(.6)}50%{opacity:1;transform:scaleY(1)}}
+.ld-txt{font-size:11px;color:var(--tx3);letter-spacing:3px;text-transform:uppercase}
+.ld-ph{font-size:13px;color:var(--a1);letter-spacing:1px;margin-top:8px}
+
+/* ERRORS */
+.err{border-radius:6px;padding:24px 28px;font-size:13px;line-height:1.9;white-space:pre-line;font-family:'IBM Plex Sans',sans-serif;display:none}
+.err.visible{display:block}
+.err-gen{background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.28);color:var(--red)}
+.err-cryp{background:rgba(167,139,250,.07);border:1px solid rgba(167,139,250,.28);color:var(--a4)}
+.err-inv{background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.28);color:var(--a2)}
+.err-rate{background:rgba(59,130,246,.07);border:1px solid rgba(59,130,246,.28);color:var(--a3)}
+
+/* RESULTS */
+.results{display:none}
+.results.visible{display:block}
+.res-hdr{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:28px;flex-wrap:wrap;gap:16px}
+.big-tkr{font-family:'Bebas Neue';font-size:72px;color:var(--a1);letter-spacing:4px;line-height:1}
+.co-name{font-family:'IBM Plex Sans';font-size:16px;color:var(--tx2);margin-top:4px}
+.co-meta{font-size:11px;color:var(--tx3);letter-spacing:2px;margin-top:4px}
+.dl-btn{background:transparent;color:var(--a2);border:1px solid var(--a2);border-radius:4px;padding:10px 20px;font-family:'IBM Plex Mono';font-size:11px;font-weight:500;letter-spacing:2px;cursor:pointer;transition:all .2s;text-transform:uppercase;white-space:nowrap}
+.dl-btn:hover{background:rgba(245,158,11,.1);box-shadow:0 0 20px rgba(245,158,11,.2)}
+.rpt-meta{font-size:11px;color:var(--tx3);letter-spacing:1px;text-align:right}
+.rpt-date{color:var(--tx2);font-size:12px;margin-top:4px}
+
+/* SENTIMENTS */
+.sent-row{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+.sent-card{flex:1;min-width:120px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:14px 16px}
+.sent-lbl{font-size:9px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px}
+.sent-val{font-family:'Bebas Neue';font-size:26px;letter-spacing:2px}
+.bull{color:var(--a1)}.bear{color:var(--red)}.neutral{color:var(--a2)}
+.div-line{height:1px;background:var(--border);margin:24px 0}
+
+/* PANELS */
+.panel{background:var(--bg2);border:1px solid var(--border);border-radius:4px;overflow:hidden;margin-bottom:16px}
+.ph{display:flex;align-items:center;gap:12px;padding:16px 24px;border-bottom:1px solid var(--border)}
+.pn{font-family:'Bebas Neue';font-size:32px;color:var(--tx3);line-height:1}
+.pt{font-family:'Bebas Neue';font-size:22px;letter-spacing:3px}
+.ptag{margin-left:auto;font-size:9px;letter-spacing:2px;text-transform:uppercase;padding:4px 10px;border-radius:2px}
+.pb{padding:24px}
+.c1 .pt{color:var(--a1)} .c1 .ptag{background:rgba(0,212,170,.1);color:var(--a1)}
+.c2 .pt{color:var(--a2)} .c2 .ptag{background:rgba(245,158,11,.1);color:var(--a2)}
+.c3 .pt{color:var(--a3)} .c3 .ptag{background:rgba(59,130,246,.1);color:var(--a3)} .c3 .ph{background:linear-gradient(90deg,rgba(59,130,246,.07),transparent)}
+.c4 .pt{color:var(--a4)} .c4 .ptag{background:rgba(167,139,250,.1);color:var(--a4)}
+.atxt{font-family:'IBM Plex Sans',sans-serif;font-size:14px;line-height:1.85;color:var(--tx2);white-space:pre-wrap}
+
+/* CONF BADGE */
+.cbadge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:12px;font-size:10px;letter-spacing:1px;font-weight:600;margin-left:8px}
+.ch{background:rgba(0,212,170,.1);color:var(--a1);border:1px solid rgba(0,212,170,.25)}
+.cm{background:rgba(245,158,11,.1);color:var(--a2);border:1px solid rgba(245,158,11,.25)}
+.cl{background:rgba(239,68,68,.1);color:var(--red);border:1px solid rgba(239,68,68,.25)}
+.cdot{width:5px;height:5px;border-radius:50%;background:currentColor;display:inline-block}
+
+/* DATA QUALITY BANNER */
+.dq-warn{display:flex;align-items:center;gap:12px;padding:12px 18px;border-radius:4px;margin-bottom:16px;font-family:'IBM Plex Sans',sans-serif;font-size:12px;line-height:1.5}
+.dq-low{background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.25);color:var(--red)}
+.dq-mid{background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.25);color:var(--a2)}
+.dq-ok{background:rgba(0,212,170,.07);border:1px solid rgba(0,212,170,.25);color:var(--a1)}
+
+/* PRICE DELAY BANNER */
+.delay-warn{display:flex;align-items:center;gap:10px;padding:8px 14px;border-radius:4px;margin-top:10px;font-size:11px;font-family:'IBM Plex Sans';line-height:1.5;background:rgba(167,139,250,.07);border:1px solid rgba(167,139,250,.25);color:var(--a4)}
+
+/* PRICE PANEL */
+.price-row{display:flex;align-items:flex-start;gap:40px;margin-bottom:28px;flex-wrap:wrap}
+.price-blk{min-width:175px}
+.price-lbl{font-size:9px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:6px}
+.price-val{font-family:'Bebas Neue';font-size:56px;color:var(--tx);letter-spacing:2px;line-height:1}
+.price-cur{font-family:'IBM Plex Mono';font-size:16px;color:var(--tx3);margin-left:6px;vertical-align:super}
+.chg-row{display:flex;align-items:center;gap:8px;margin-top:8px}
+.chg-v{font-family:'IBM Plex Mono';font-size:13px;font-weight:600}
+.price-note{font-size:9px;color:var(--tx3);line-height:1.55;border-left:2px solid var(--border);padding-left:8px;margin-top:10px}
+.w52-blk{flex:1;min-width:280px}
+.w52-lbl{font-size:9px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:14px}
+.w52-ext{display:flex;justify-content:space-between;margin-bottom:10px}
+.ext-v{font-family:'IBM Plex Mono';font-weight:700;font-size:15px}
+.ext-lo .ext-v{color:var(--red)}.ext-hi .ext-v{color:var(--a1)}.ext-hi{text-align:right}
+.ext-l{font-size:9px;color:var(--tx3);letter-spacing:1px;margin-top:3px}
+.rbar{position:relative;height:10px;background:var(--bg3);border-radius:5px;overflow:visible;margin-bottom:4px}
+.rbar-grad{position:absolute;inset:0;border-radius:5px;background:linear-gradient(90deg,rgba(239,68,68,.4),rgba(245,158,11,.4),rgba(0,212,170,.4))}
+.rleg{display:flex;gap:16px;margin-top:12px;flex-wrap:wrap}
+.rleg-i{display:flex;align-items:center;gap:6px}
+.rleg-t{font-size:9px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase}
+
+/* FAIR VALUE — LONG TERM INVESTOR */
+.fv-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:28px}
+@media(max-width:600px){.fv-grid{grid-template-columns:1fr}}
+.fv-card{border-radius:4px;padding:20px;position:relative;overflow:hidden}
+.fv-fair{background:rgba(0,212,170,.06);border:1px solid rgba(0,212,170,.22)}
+.fv-disc{background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.22)}
+.fv-margin{background:rgba(167,139,250,.06);border:1px solid rgba(167,139,250,.22)}
+.fv-badge{position:absolute;top:0;right:0;font-size:9px;letter-spacing:1px;padding:3px 8px;border-bottom-left-radius:4px}
+.fv-fair .fv-badge{background:rgba(0,212,170,.18);color:var(--a1)}
+.fv-disc .fv-badge{background:rgba(245,158,11,.18);color:var(--a2)}
+.fv-margin .fv-badge{background:rgba(167,139,250,.18);color:var(--a4)}
+.fv-icon{font-size:20px;margin-bottom:10px}
+.fv-name{font-size:9px;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px}
+.fv-fair .fv-name{color:rgba(0,212,170,.8)}.fv-disc .fv-name{color:rgba(245,158,11,.8)}.fv-margin .fv-name{color:rgba(167,139,250,.8)}
+.fv-val{font-family:'Bebas Neue';font-size:30px;letter-spacing:1px}
+.fv-fair .fv-val{color:var(--a1)}.fv-disc .fv-val{color:var(--a2)}.fv-margin .fv-val{color:var(--a4)}
+.fv-sub{font-size:11px;color:var(--tx3);margin-top:2px}
+.fv-pct{font-size:12px;font-weight:600;margin-top:6px;padding:3px 8px;border-radius:3px;display:inline-block}
+.fv-fair .fv-pct{background:rgba(0,212,170,.1);color:var(--a1)}.fv-disc .fv-pct{background:rgba(245,158,11,.1);color:var(--a2)}.fv-margin .fv-pct{background:rgba(167,139,250,.1);color:var(--a4)}
+.fv-rat{font-family:'IBM Plex Sans',sans-serif;font-size:12px;color:var(--tx3);line-height:1.6;margin-top:20px;border-top:1px solid var(--border);padding-top:16px}
+.fv-disclaimer{font-size:10px;color:var(--tx3);font-family:'IBM Plex Sans';font-style:italic;margin-top:16px;padding:10px 14px;border-left:2px solid var(--border);line-height:1.5}
+
+/* DIVIDEND & FLAGS PANEL */
+.div-metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:20px}
+@media(max-width:600px){.div-metrics{grid-template-columns:1fr}}
+.dm-card{background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:18px}
+.dm-title{font-size:9px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px}
+.dm-val{font-family:'Bebas Neue';font-size:40px;letter-spacing:1px;line-height:1}
+.dm-sub{font-size:10px;color:var(--tx3);margin-top:4px;font-family:'IBM Plex Sans'}
+.dm-conf{margin-top:10px}
+
+/* FLAGS */
+.flags-box{margin-top:16px}
+.flags-title{font-size:9px;color:var(--a2);letter-spacing:3px;text-transform:uppercase;margin-bottom:12px}
+.flag-item{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border-radius:4px;margin-bottom:8px;font-family:'IBM Plex Sans';font-size:12px;line-height:1.5}
+.flag-warn{background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.2);color:var(--a2)}
+.flag-ok{background:rgba(0,212,170,.07);border:1px solid rgba(0,212,170,.2);color:var(--a1)}
+.flag-info{background:rgba(59,130,246,.07);border:1px solid rgba(59,130,246,.2);color:var(--a3)}
+.no-flags{font-size:11px;color:var(--tx3);font-family:'IBM Plex Sans';font-style:italic;padding:10px 0}
+
+/* DATA SOURCES */
+.src-box{background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:14px 18px;margin-top:16px}
+.src-lbl{font-size:9px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px}
+.src-list{display:flex;flex-wrap:wrap;gap:8px}
+.src-tag{font-size:10px;color:var(--tx2);background:var(--bg2);border:1px solid var(--border);border-radius:3px;padding:3px 8px;font-family:'IBM Plex Sans'}
+
+/* CONFIDENCE TABLE */
+.ct{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px}
+.ct th{text-align:left;color:var(--tx3);font-size:9px;letter-spacing:2px;text-transform:uppercase;padding:6px 12px;border-bottom:1px solid var(--border);font-weight:400}
+.ct td{padding:10px 12px;border-bottom:1px solid var(--bg3);color:var(--tx2)}
+.ct tr:last-child td{border-bottom:none}
+.ct tr:hover td{background:rgba(255,255,255,.015)}
+.cs{font-family:'Bebas Neue';font-size:20px;letter-spacing:1px}
+.cb{height:4px;background:var(--bg3);border-radius:2px;margin-top:4px;width:90px}
+.cbf{height:100%;border-radius:2px}
+
+/* PROFILE BADGE */
+.profile-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(0,212,170,.08);border:1px solid rgba(0,212,170,.2);border-radius:4px;padding:6px 14px;font-size:10px;color:var(--a1);letter-spacing:2px;margin-left:12px}
+
+/* NAV TABS */
+.nav-tabs{display:flex;gap:0;background:var(--bg3);border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-bottom:40px;flex-wrap:wrap}
+.nav-tab{background:none;border:none;border-right:1px solid var(--border);cursor:pointer;padding:12px 24px;font-family:'IBM Plex Mono';font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--tx3);transition:all .2s;display:flex;align-items:center;gap:8px;flex:1;justify-content:center}
+.nav-tab:last-child{border-right:none}
+.nav-tab:hover{color:var(--tx);background:rgba(255,255,255,.04)}
+.nav-tab.active{color:var(--a1);background:rgba(0,212,170,.08)}
+.nav-tab .tab-icon{font-size:16px}
+
+/* ACADEMY */
+.academy{display:none}
+.academy.visible{display:block}
+.ac-header{margin-bottom:36px}
+.ac-title{font-family:'Bebas Neue';font-size:48px;color:var(--a1);letter-spacing:4px;line-height:1}
+.ac-subtitle{font-size:11px;color:var(--tx3);letter-spacing:2px;margin-top:6px;font-family:'IBM Plex Sans'}
+
+/* LEVEL SELECTOR */
+.level-sw{display:flex;gap:8px;margin-bottom:32px;flex-wrap:wrap}
+.level-btn{background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:8px 20px;font-family:'IBM Plex Mono';font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .2s;color:var(--tx3)}
+.level-btn:hover{border-color:var(--tx2);color:var(--tx)}
+.level-btn.active-beg{background:rgba(0,212,170,.1);border-color:var(--a1);color:var(--a1)}
+.level-btn.active-int{background:rgba(245,158,11,.1);border-color:var(--a2);color:var(--a2)}
+.level-btn.active-adv{background:rgba(167,139,250,.1);border-color:var(--a4);color:var(--a4)}
+
+/* CATEGORY TABS */
+.cat-tabs{display:flex;gap:8px;margin-bottom:28px;flex-wrap:wrap}
+.cat-btn{background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:6px 16px;font-family:'IBM Plex Sans';font-size:11px;cursor:pointer;transition:all .2s;color:var(--tx3);white-space:nowrap}
+.cat-btn:hover{color:var(--tx);border-color:var(--tx2)}
+.cat-btn.active{background:rgba(59,130,246,.1);border-color:var(--a3);color:var(--a3)}
+
+/* CONCEPT CARDS GRID */
+.concepts-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px}
+@media(max-width:700px){.concepts-grid{grid-template-columns:1fr}}
+
+/* CONCEPT CARD */
+.concept-card{background:var(--bg2);border:1px solid var(--border);border-radius:4px;overflow:hidden;cursor:pointer;transition:all .25s}
+.concept-card:hover{border-color:var(--a3);transform:translateY(-2px);box-shadow:0 4px 20px rgba(59,130,246,.12)}
+.cc-head{padding:16px 20px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border)}
+.cc-icon{font-size:24px;flex-shrink:0}
+.cc-title{font-family:'IBM Plex Mono';font-size:13px;font-weight:700;color:var(--tx);letter-spacing:.5px}
+.cc-tag{margin-left:auto;font-size:8px;letter-spacing:1px;text-transform:uppercase;padding:3px 8px;border-radius:2px;flex-shrink:0}
+.tag-beg{background:rgba(0,212,170,.1);color:var(--a1);border:1px solid rgba(0,212,170,.2)}
+.tag-int{background:rgba(245,158,11,.1);color:var(--a2);border:1px solid rgba(245,158,11,.2)}
+.tag-adv{background:rgba(167,139,250,.1);color:var(--a4);border:1px solid rgba(167,139,250,.2)}
+.cc-summary{padding:14px 20px;font-family:'IBM Plex Sans';font-size:12px;color:var(--tx3);line-height:1.6}
+.cc-more{padding:0 20px 14px;font-size:10px;color:var(--a3);letter-spacing:1px;font-family:'IBM Plex Mono'}
+
+/* CONCEPT MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(7,10,14,.85);z-index:100;display:flex;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto;backdrop-filter:blur(4px)}
+.modal-overlay.hidden{display:none}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:6px;max-width:720px;width:100%;position:relative;animation:modalIn .2s ease}
+@keyframes modalIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.modal-head{padding:24px 28px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px}
+.modal-icon{font-size:32px}
+.modal-title{font-family:'Bebas Neue';font-size:28px;letter-spacing:2px;color:var(--tx)}
+.modal-level{margin-left:auto}
+.modal-close{position:absolute;top:16px;right:16px;background:none;border:1px solid var(--border);border-radius:4px;color:var(--tx3);cursor:pointer;padding:4px 10px;font-family:'IBM Plex Mono';font-size:11px;transition:all .2s}
+.modal-close:hover{color:var(--tx);border-color:var(--tx)}
+.modal-body{padding:28px;font-family:'IBM Plex Sans';font-size:14px;color:var(--tx2);line-height:1.85}
+.modal-body p{margin-bottom:14px}
+.modal-body p:last-child{margin-bottom:0}
+.modal-body strong{color:var(--tx);font-weight:600}
+.modal-body .example{background:var(--bg3);border-left:3px solid var(--a2);padding:12px 16px;border-radius:0 4px 4px 0;margin:16px 0;font-size:13px;color:var(--tx2)}
+.modal-body .formula{background:var(--bg3);border:1px solid var(--border);padding:10px 16px;border-radius:4px;margin:12px 0;font-family:'IBM Plex Mono';font-size:13px;color:var(--a1);text-align:center}
+.modal-nav{padding:16px 28px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.modal-nav-btn{background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:8px 16px;font-family:'IBM Plex Mono';font-size:10px;font-weight:700;letter-spacing:1px;cursor:pointer;color:var(--tx3);transition:all .2s;text-transform:uppercase}
+.modal-nav-btn:hover{color:var(--tx);border-color:var(--tx2)}
+.modal-counter{font-size:10px;color:var(--tx3);letter-spacing:1px}
+
+/* SEARCH BAR */
+.ac-search{position:relative;margin-bottom:24px}
+.ac-search-in{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:12px 16px 12px 42px;font-family:'IBM Plex Sans';font-size:13px;color:var(--tx);outline:none;transition:border-color .2s}
+.ac-search-in:focus{border-color:var(--a3)}
+.ac-search-in::placeholder{color:var(--tx3)}
+.ac-search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--tx3);font-size:14px;pointer-events:none}
+.ac-count{font-size:10px;color:var(--tx3);letter-spacing:1px;margin-bottom:16px}
+
+/* PROGRESS BAR */
+.ac-progress{background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:16px 20px;margin-bottom:28px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.ac-prog-label{font-size:10px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;white-space:nowrap}
+.ac-prog-bar{flex:1;min-width:120px;height:4px;background:var(--bg);border-radius:2px}
+.ac-prog-fill{height:100%;background:var(--a1);border-radius:2px;transition:width .4s ease}
+.ac-prog-count{font-size:11px;color:var(--a1);font-weight:700;white-space:nowrap}
+
+/* DEMO MODE */
+.demo-box{background:rgba(167,139,250,.07);border:1px solid rgba(167,139,250,.3);border-radius:6px;padding:20px 24px;margin-bottom:32px}
+.demo-title{font-size:10px;color:var(--a4);letter-spacing:3px;text-transform:uppercase;margin-bottom:8px}
+.demo-note{font-size:11px;color:var(--tx3);margin-bottom:16px;font-family:'IBM Plex Sans';line-height:1.6}
+.demo-tickers-lbl{font-size:10px;color:var(--tx3);letter-spacing:1px;margin-bottom:10px}
+.demo-btns{display:flex;gap:8px;flex-wrap:wrap}
+.demo-ticker-btn{background:rgba(167,139,250,.12);color:var(--a4);border:1px solid rgba(167,139,250,.3);border-radius:4px;padding:8px 18px;font-family:'IBM Plex Mono';font-size:13px;font-weight:700;letter-spacing:2px;cursor:pointer;transition:all .2s}
+.demo-ticker-btn:hover{background:rgba(167,139,250,.25);transform:translateY(-1px)}
+.demo-banner{display:flex;align-items:center;gap:10px;padding:10px 16px;border-radius:4px;margin-bottom:16px;font-size:11px;font-family:'IBM Plex Sans';font-weight:600;letter-spacing:1px;background:rgba(167,139,250,.1);border:1px solid rgba(167,139,250,.3);color:var(--a4)}
+
+/* CONVENTION DISCLAIMER (for –15% / –25% cards) */
+.conv-disclaimer{font-size:10px;color:var(--tx3);font-family:'IBM Plex Sans';font-style:italic;margin-top:8px;padding:8px 12px;background:rgba(255,255,255,.03);border-radius:3px;border-left:2px solid var(--border);line-height:1.5}
+.conv-tag{font-size:8px;letter-spacing:1px;text-transform:uppercase;padding:2px 6px;border-radius:2px;margin-bottom:6px;display:inline-block;background:rgba(255,255,255,.06);color:var(--tx3)}
+
+@media print{
+  .grid,.srch,.dl-btn,.hdr-r,.dq-warn,.api-box,.cache-tag,.demo-box,.demo-banner{display:none!important}
+  .app{background:white!important}
+  .panel,.dm-card{background:white!important;border:1px solid #ddd!important;break-inside:avoid;margin-bottom:10px}
+  .ph{background:#f5f5f5!important}.atxt{color:#333!important}
+  .big-tkr,.fv-val,.price-val,.cs,.dm-val{color:#000!important}
+  .big-tkr{font-size:48px!important}.pt{color:#000!important}
+  .sent-card,.fv-card{background:#f9f9f9!important;border:1px solid #ddd!important}
+  .wrap{max-width:100%!important}.cbadge{border:1px solid #ccc!important;background:#f5f5f5!important;color:#333!important}
+  body{background:white!important;color:#111!important}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="grid"></div>
+  <div class="wrap">
+
+    <!-- HEADER -->
+    <div class="hdr">
+      <!-- AXIOS-IQ LOGO -->
+      <!-- AXIOS-IQ · ἄξιος (áxios) · Ancient Greek: "of just value, worthy of its price" -->
+      <div class="axios-logo-wrap">
+        <!-- Hexagon 66×66 · AX principal + -IQ superíndice en el monograma -->
+        <svg width="66" height="66" viewBox="0 0 66 66" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="AXIOS-IQ">
+          <defs>
+            <linearGradient id="axGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#00f5c0"/>
+              <stop offset="55%" stop-color="#00d4aa"/>
+              <stop offset="100%" stop-color="#009e80"/>
+            </linearGradient>
+            <radialGradient id="axAura" cx="50%" cy="42%" r="52%">
+              <stop offset="0%" stop-color="#00f5c0" stop-opacity="0.22"/>
+              <stop offset="100%" stop-color="#00d4aa" stop-opacity="0"/>
+            </radialGradient>
+            <filter id="axGlow" x="-30%" y="-30%" width="160%" height="160%">
+              <feGaussianBlur in="SourceGraphic" stdDeviation="3.8" result="blur"/>
+              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+          <!-- Aura -->
+          <circle cx="33" cy="33" r="32" fill="url(#axAura)"/>
+          <!-- Hexagon body (66×66 proportional: was 56×56, scaled ~1.18×) -->
+          <polygon points="33,2 61,17.5 61,48.5 33,64 5,48.5 5,17.5"
+            fill="url(#axGrad)" filter="url(#axGlow)"/>
+          <!-- Outer edge highlight -->
+          <polygon points="33,2 61,17.5 61,48.5 33,64 5,48.5 5,17.5"
+            fill="none" stroke="rgba(255,255,255,0.22)" stroke-width="1.3"/>
+          <!-- Inner ring — coincide exactamente con el hexágono exterior -->
+          <polygon points="33,2 61,17.5 61,48.5 33,64 5,48.5 5,17.5"
+            fill="none" stroke="rgba(0,20,14,0.30)" stroke-width="1.5"/>
+          <!-- Vertex accent dots -->
+          <circle cx="33" cy="2"    r="2.1" fill="rgba(255,255,255,0.42)"/>
+          <circle cx="61" cy="17.5" r="2.1" fill="rgba(255,255,255,0.42)"/>
+          <circle cx="61" cy="48.5" r="2.1" fill="rgba(255,255,255,0.42)"/>
+          <circle cx="33" cy="64"   r="2.1" fill="rgba(255,255,255,0.42)"/>
+          <circle cx="5"  cy="48.5" r="2.1" fill="rgba(255,255,255,0.42)"/>
+          <circle cx="5"  cy="17.5" r="2.1" fill="rgba(255,255,255,0.42)"/>
+          <!-- AX centrado en el hexágono — x=33 centro, y=42 centrado visual -->
+          <text x="33" y="42"
+            font-family="'Bebas Neue','Arial Black',sans-serif"
+            font-size="26" font-weight="900" fill="#020e09"
+            text-anchor="middle" letter-spacing="1">AX</text>
+          <!-- -IQ superíndice — arriba a la derecha -->
+          <text x="51" y="28"
+            font-family="'Bebas Neue','Arial Black',sans-serif"
+            font-size="12" font-weight="700" fill="rgba(2,14,9,0.72)"
+            text-anchor="middle" letter-spacing="0.5">-IQ</text>
+        </svg>
+      </div>
+      <div>
+        <div class="logo-t">AXIOS<span class="logo-iq">-IQ</span></div>
+        <div class="logo-s" id="subtitle">Terminal de Inteligencia Bursátil</div>
+      </div>
+      <div class="hdr-r">
+        <div class="lang-sw">
+          <button class="lang-btn active" onclick="setLang('es')" id="btn-es">🇪🇸<span class="lang-code">ES</span></button>
+          <button class="lang-btn" onclick="setLang('pt')" id="btn-pt">🇵🇹<span class="lang-code">PT</span></button>
+          <button class="lang-btn" onclick="setLang('en')" id="btn-en">🇬🇧<span class="lang-code">EN</span></button>
+        </div>
+        <div style="display:flex;align-items:center;gap:7px">
+          <div class="pulse"></div><div class="live-txt" id="live-txt">ANÁLISIS EN VIVO</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NAV TABS -->
+    <div class="nav-tabs">
+      <button class="nav-tab active" id="tab-analyzer" onclick="showTab('analyzer')">
+        <span class="tab-icon">📊</span>
+        <span id="tab-analyzer-lbl">ANALIZADOR</span>
+      </button>
+      <button class="nav-tab" id="tab-academy" onclick="showTab('academy')">
+        <span class="tab-icon">🎓</span>
+        <span id="tab-academy-lbl">ACADEMIA</span>
+      </button>
+      <a class="nav-tab" href="https://ko-fi.com/axiosiq" target="_blank" rel="noopener" style="text-decoration:none;color:var(--tx3)">
+        <span class="tab-icon">☕</span>
+        <span>KO-FI</span>
+      </a>
+    </div>
+
+    <!-- ANALYZER CONTENT -->
+    <div id="analyzer-content">
+
+    <!-- API KEY BOX -->
+    <div class="api-box gemini-mode" id="api-box">
+      <div class="api-box-hdr">
+        <span style="font-size:16px">🔑</span>
+        <span class="api-lbl" id="api-lbl">Proveedor de IA</span>
+      </div>
+      <!-- PROVIDER TOGGLE -->
+      <div class="prov-sw">
+        <button class="prov-btn sel-gem" id="prov-gem" onclick="setProvider('gemini')">
+          🔵 Google Gemini <span class="prov-badge prov-badge-free">GRATIS · SIN TARJETA</span>
+        </button>
+        <button class="prov-btn" id="prov-ant" onclick="setProvider('anthropic')">
+          🟠 Anthropic Claude <span class="prov-badge prov-badge-pay">DE PAGO</span>
+        </button>
+      </div>
+      <div class="api-note" id="api-note">Introduce tu clave de Google AI Studio (aistudio.google.com). Es gratuita, sin tarjeta. Se guarda solo en tu navegador.</div>
+      <div class="api-row">
+        <input class="api-in gem-in" type="password" id="api-key-input" placeholder="AIzaSy..."/>
+        <button class="api-save gem-save" onclick="saveApiKey()" id="api-save-btn">Guardar</button>
+      </div>
+      <div class="api-ok" id="api-ok" style="display:none;margin-top:10px">
+        <div class="api-ok-dot"></div>
+        <span id="api-ok-txt">Clave guardada · Listo para analizar</span>
+      </div>
+      <!-- GEMINI PRIVACY WARNING -->
+      <div class="gem-warn on" id="gem-warn">
+        ⚠ <strong>Privacidad:</strong> En el plan gratuito de Gemini, Google puede usar tus consultas para mejorar sus modelos. Para análisis personales de inversión, tenlo en cuenta. <a href="https://ai.google.dev/gemini-api/terms" target="_blank" rel="noopener">Ver términos →</a><br/>
+        ⚠ <strong>Zona EEA/UE:</strong> Google restringe técnicamente el tier gratuito en la Unión Europea. En la práctica <em>suele funcionar</em>, pero si obtienes error 403 activa una VPN momentáneamente o considera el plan de pago de Gemini.
+      </div>
+      <!-- HOW TO GET GEMINI KEY -->
+      <div class="gem-howto on" id="gem-howto">
+        <strong>✅ Cómo obtener tu clave gratuita de Gemini · 3 minutos, sin tarjeta, sin límite diario generoso</strong>
+        <ol>
+          <li>Ve a <strong><a href="https://aistudio.google.com" target="_blank" rel="noopener" style="color:var(--a3)">aistudio.google.com</a></strong></li>
+          <li>Inicia sesión con tu cuenta de Google</li>
+          <li>Haz clic en <strong>"Get API key"</strong> → <strong>"Create API key"</strong></li>
+          <li>Copia la clave (empieza por <strong>AIzaSy...</strong>) y pégala arriba</li>
+          <li>Pulsa Guardar · ¡Listo para analizar sin coste!</li>
+        </ol>
+      </div>
+    </div>
+
+    <!-- DEMO MODE BOX (shown when no API key) -->
+    <div class="demo-box" id="demo-box" style="display:none">
+      <div class="demo-title" id="demo-title">MODO DEMO — Sin API key</div>
+      <div class="demo-note" id="demo-note">Análisis de ejemplo con datos reales de mercado. Los precios y métricas cambian diariamente — estos datos tienen fecha fija y son solo orientativos. Introduce tu API key para análisis en tiempo real.</div>
+      <div class="demo-tickers-lbl" id="demo-tickers-lbl">Elige una empresa para ver el análisis demo:</div>
+      <div class="demo-btns">
+        <button class="demo-ticker-btn" onclick="loadDemo('AAPL')">AAPL</button>
+        <button class="demo-ticker-btn" onclick="loadDemo('MSFT')">MSFT</button>
+        <button class="demo-ticker-btn" onclick="loadDemo('NVDA')">NVDA</button>
+        <button class="demo-ticker-btn" onclick="loadDemo('SAN')">SAN</button>
+      </div>
+    </div>
+
+    <!-- SEARCH -->
+    <div class="srch">
+      <div class="srch-lbl" id="search-lbl">— Introduce el ticker bursátil</div>
+      <div class="srch-row">
+        <input class="ticker-in" id="ticker-input" placeholder="AAPL" maxlength="10" oninput="this.value=this.value.toUpperCase()" onkeydown="if(event.key==='Enter')analyze()"/>
+        <button class="go-btn" id="go-btn" onclick="analyze()">▶ Analizar</button>
+        <span class="cache-tag" id="cache-tag">⚡ DESDE CACHÉ</span>
+      </div>
+    </div>
+
+    <!-- LOADING -->
+    <div class="ld" id="loading" style="display:none">
+      <div class="ld-tkr" id="ld-tkr"></div>
+      <div class="ld-bars"><div class="ld-b"></div><div class="ld-b"></div><div class="ld-b"></div><div class="ld-b"></div><div class="ld-b"></div><div class="ld-b"></div><div class="ld-b"></div></div>
+      <div class="ld-txt" id="ld-txt">PROCESANDO DATOS DE MERCADO</div>
+      <div class="ld-ph" id="ld-ph"></div>
+    </div>
+
+    <!-- ERROR -->
+    <div class="err" id="error-box"></div>
+
+    <!-- RESULTS -->
+    <div class="results" id="results"></div>
+
+    </div><!-- end #analyzer-content -->
+
+    <!-- ACADEMY CONTENT -->
+    <div id="academy-content" style="display:none"></div>
+
+    <!-- MODAL OVERLAY -->
+    <div class="modal-overlay hidden" id="modal-overlay"></div>
+
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════
+// TRANSLATIONS
+// ══════════════════════════════════════════════════════════
+const T = {
+  es:{
+    subtitle:"Terminal de Inteligencia Bursátil",
+    searchLabel:"— Introduce el ticker bursátil",
+    analyzeBtn:"▶ Analizar",analyzing:"Analizando...",processingData:"PROCESANDO DATOS DE MERCADO",
+    liveAnalysis:"ANÁLISIS EN VIVO",downloadPdf:"⤓ Descargar PDF",reportGenerated:"INFORME GENERADO",
+    phases:["Ejecutando búsquedas de mercado en tiempo real...","Buscando precio actual y rango 52 semanas...","Verificando datos de dividendo y payout ratio...","Analizando balance, deuda y acciones en circulación...","Analizando contexto macroeconómico...","Evaluando fundamentos y calidad de negocio...","Calculando precio razonable a largo plazo...","Evaluando alertas y señales de valor...","Evaluando fiabilidad de los datos...","Generando informe final..."],
+    macroLbl:"Macro",fundLbl:"Fundamental",techLbl:"Calidad",genLbl:"General",
+    currentPrice:"Precio actual",vsYest:"vs cierre anterior",
+    priceDataLbl:"DATOS DE PRECIO",
+    priceSourceNote:"Dato obtenido vía búsqueda web.",
+    delayWarn:"⚠ El precio puede tener un desfase de 15-20 min (datos de mercado en tiempo real requieren suscripción premium). Verifica siempre en tu broker antes de operar.",
+    realtimeOk:"✓ Precio en tiempo real confirmado vía búsqueda web.",
+    range52:"Rango 52 semanas",min52:"Mín. 52W",max52:"Máx. 52W",
+    fairValueTitle:"Precio Razonable · Inversor a Largo Plazo",
+    fvLabel:"Valor Razonable",discLabel:"Precio con Descuento",marginLabel:"Margen de Seguridad",
+    fvBadge:"ESTIMACIÓN",discBadge:"ENTRADA IDEAL",marginBadge:"PROTECCIÓN",
+    fvSub:"Estimación analítica",discSub:"Objetivo de entrada",marginSub:"Precio límite inferior",
+    vsPrice:"vs precio actual",
+    fvRationale:"▸ RAZONAMIENTO VALORACIÓN · ",
+    fvDisclaimer:"⚠ Estos valores son estimaciones analíticas basadas en múltiplos históricos y datos fundamentales. NO son precios garantizados. Siempre realiza tu propio análisis antes de invertir.",
+    divTitle:"Dividendo & Payout Actual",
+    dyLabel:"Dividend Yield actual",prLabel:"Payout Ratio actual",
+    confirmed:"CONFIRMADO",estimated:"ESTIMADO",notAvailable:"No disponible",
+    flagsTitle:"⚑ ALERTAS Y SEÑALES RELEVANTES",
+    noFlags:"Sin alertas destacables identificadas.",
+    macroTitle:"Macroeconómico",fundTitle:"Análisis Fundamental",qualityTitle:"Calidad del Negocio",confTitle:"Fiabilidad del Análisis",
+    confIntro:"Puntuación de 1–10 sobre la veracidad de cada campo. Alta = dato encontrado en web confirmado. Baja = estimación o sin fuente directa.",
+    cfld:"Campo",cscr:"Puntuación",cbar:"Fiabilidad",cnote:"Nota",
+    flds:{price_data:"Precio & Datos de Mercado",macro:"Análisis Macroeconómico",fundamental:"Análisis Fundamental",quality:"Calidad del Negocio",dividend_data:"Dividendo & Payout Actual",flags_data:"Alertas y Señales",fair_value:"Precio Razonable LP"},
+    icons:{price_data:"💰",macro:"🌍",fundamental:"📊",quality:"⭐",dividend_data:"💸",flags_data:"⚑",fair_value:"🎯"},
+    bull:"Alcista",bear:"Bajista",neutral:"Neutro",
+    apiKeyLbl:"Clave API de Anthropic",
+    apiKeyNote:"Introduce tu clave de la API de Anthropic (console.anthropic.com). Se guarda solo en tu navegador (localStorage) y nunca se envía a ningún servidor externo.",
+    apiKeySave:"Guardar",apiKeyOk:"Clave guardada · Listo para analizar",
+    errNoKey:"🔑 Introduce primero tu clave API de Anthropic en la sección superior.",
+    errCrypto:"🪙 Análisis de criptomonedas no disponible\n\nEsta aplicación está diseñada para renta variable (acciones y ETFs). Las criptomonedas no están incluidas.\n\nPrueba con: AAPL · MSFT · NVDA · TSLA · SAN · IBE · AMZN",
+    errInvalid:(t)=>`⚠ Ticker no reconocido: "${t}"\n\nNo se ha encontrado ninguna empresa cotizada con ese símbolo. Comprueba el ticker en Google Finance o en tu broker.\n\nEjemplos válidos: AAPL · MSFT · NVDA · TSLA · SAN · IBE · REP`,
+    errRate:()=>`⏱ Límite de uso alcanzado\n\nSe ha superado la cuota de solicitudes de la API. Espera unos minutos e inténtalo de nuevo.`,
+    errGen:(t,m)=>`No se pudo completar el análisis de "${t}".\n\n${m}`,
+    foot:"Análisis generado por IA con búsqueda web en tiempo real · Los precios pueden tener desfase · No constituye asesoramiento financiero · Verifica en fuentes oficiales antes de invertir",
+    noData:"Sin datos disponibles",dataSources:"FUENTES CONSULTADAS",
+    profileBadge:"📈 INVERSOR LARGO PLAZO",
+    cacheNote:"Análisis en caché",
+    demoTitle:"MODO DEMO — Sin API key",
+    demoNote:"Análisis de ejemplo con datos reales de mercado. Los precios y métricas cambian diariamente — estos datos tienen fecha fija y son solo orientativos. Introduce tu API key para análisis en tiempo real.",
+    demoBtn:"Ver análisis de ejemplo",
+    demoBanner:"⚠ DEMO · Datos con fecha fija · No son precios actuales · Solo para evaluar la interfaz",
+    demoTickers:"Elige una empresa para ver el análisis demo:",
+    apiNoteAnthropic:"Introduce tu clave de la API de Anthropic (console.anthropic.com). Se guarda solo en tu navegador y nunca se envía a servidores externos.",
+    apiNoteGemini:"Introduce tu clave de Google AI Studio (aistudio.google.com). Gratuita, sin tarjeta. Se guarda solo en tu navegador.",
+  },
+  pt:{
+    subtitle:"Terminal de Inteligência Bolsista",
+    searchLabel:"— Introduza o ticker bolsista",
+    analyzeBtn:"▶ Analisar",analyzing:"A analisar...",processingData:"A PROCESSAR DADOS DE MERCADO",
+    liveAnalysis:"ANÁLISE AO VIVO",downloadPdf:"⤓ Descarregar PDF",reportGenerated:"RELATÓRIO GERADO",
+    phases:["A executar pesquisas de mercado em tempo real...","A procurar preço atual e intervalo 52 semanas...","A verificar dados de dividendo e payout ratio...","A analisar balanço, dívida e ações em circulação...","A analisar contexto macroeconómico...","A avaliar fundamentos e qualidade do negócio...","A calcular preço razoável a longo prazo...","A avaliar alertas e sinais de valor...","A avaliar fiabilidade dos dados...","A gerar relatório final..."],
+    macroLbl:"Macro",fundLbl:"Fundamental",techLbl:"Qualidade",genLbl:"Geral",
+    currentPrice:"Preço atual",vsYest:"vs fecho anterior",
+    priceDataLbl:"DADOS DE PREÇO",
+    priceSourceNote:"Dado obtido via pesquisa web.",
+    delayWarn:"⚠ O preço pode ter um atraso de 15-20 min (dados de mercado em tempo real requerem subscrição premium). Verifique sempre no seu broker.",
+    realtimeOk:"✓ Preço em tempo real confirmado via pesquisa web.",
+    range52:"Intervalo 52 semanas",min52:"Mín. 52S",max52:"Máx. 52S",
+    fairValueTitle:"Preço Razoável · Investidor de Longo Prazo",
+    fvLabel:"Valor Razoável",discLabel:"Preço com Desconto",marginLabel:"Margem de Segurança",
+    fvBadge:"ESTIMATIVA",discBadge:"ENTRADA IDEAL",marginBadge:"PROTEÇÃO",
+    fvSub:"Estimativa analítica",discSub:"Objetivo de entrada",marginSub:"Preço limite inferior",
+    vsPrice:"vs preço atual",
+    fvRationale:"▸ RACIOCÍNIO DE VALORIZAÇÃO · ",
+    fvDisclaimer:"⚠ Estes valores são estimativas analíticas baseadas em múltiplos históricos e dados fundamentais. NÃO são preços garantidos. Realize sempre a sua própria análise antes de investir.",
+    divTitle:"Dividendo & Payout Atual",
+    dyLabel:"Dividend Yield atual",prLabel:"Payout Ratio atual",
+    confirmed:"CONFIRMADO",estimated:"ESTIMADO",notAvailable:"Não disponível",
+    flagsTitle:"⚑ ALERTAS E SINAIS RELEVANTES",
+    noFlags:"Sem alertas relevantes identificados.",
+    macroTitle:"Macroeconómico",fundTitle:"Análise Fundamental",qualityTitle:"Qualidade do Negócio",confTitle:"Fiabilidade da Análise",
+    confIntro:"Pontuação de 1–10 sobre a veracidade de cada campo. Alta = dado confirmado na web. Baixa = estimativa ou sem fonte direta.",
+    cfld:"Campo",cscr:"Pontuação",cbar:"Fiabilidade",cnote:"Nota",
+    flds:{price_data:"Preço & Dados de Mercado",macro:"Análise Macroeconómica",fundamental:"Análise Fundamental",quality:"Qualidade do Negócio",dividend_data:"Dividendo & Payout Atual",flags_data:"Alertas e Sinais",fair_value:"Preço Razoável LP"},
+    icons:{price_data:"💰",macro:"🌍",fundamental:"📊",quality:"⭐",dividend_data:"💸",flags_data:"⚑",fair_value:"🎯"},
+    bull:"Alta",bear:"Baixa",neutral:"Neutro",
+    apiKeyLbl:"Chave API da Anthropic",
+    apiKeyNote:"Introduza a sua chave da API da Anthropic (console.anthropic.com). É guardada apenas no seu browser (localStorage) e nunca é enviada para servidores externos.",
+    apiKeySave:"Guardar",apiKeyOk:"Chave guardada · Pronto para analisar",
+    errNoKey:"🔑 Introduza primeiro a sua chave API da Anthropic na secção superior.",
+    errCrypto:"🪙 Análise de criptomoedas não disponível\n\nEsta aplicação destina-se a ações e ETFs cotados em bolsa.\n\nExperimente: AAPL · MSFT · NVDA · TSLA · EDP · GALP · NOS",
+    errInvalid:(t)=>`⚠ Ticker não reconhecido: "${t}"\n\nNão foi encontrada nenhuma empresa cotada com esse símbolo. Verifique no Google Finance ou no seu broker.`,
+    errRate:()=>`⏱ Limite de utilização atingido\n\nFoi ultrapassada a quota de pedidos da API. Aguarde alguns minutos.`,
+    errGen:(t,m)=>`Não foi possível concluir a análise de "${t}".\n\n${m}`,
+    foot:"Análise gerada por IA com pesquisa web em tempo real · Preços podem ter desfasamento · Não constitui aconselhamento financeiro · Verifique em fontes oficiais antes de investir",
+    noData:"Sem dados disponíveis",dataSources:"FONTES CONSULTADAS",
+    profileBadge:"📈 INVESTIDOR LONGO PRAZO",
+    cacheNote:"Análise em cache",
+    demoTitle:"MODO DEMO — Sem chave API",
+    demoNote:"Análise de exemplo com dados reais de mercado. Os preços e métricas mudam diariamente — estes dados têm data fixa e são apenas orientativos. Introduza a sua chave API para análise em tempo real.",
+    demoBtn:"Ver análise de exemplo",
+    demoBanner:"⚠ DEMO · Dados com data fixa · Não são preços atuais · Apenas para avaliar a interface",
+    demoTickers:"Escolha uma empresa para ver a análise demo:",
+    apiNoteAnthropic:"Introduza a sua chave da API da Anthropic (console.anthropic.com). Guardada apenas no seu browser.",
+    apiNoteGemini:"Introduza a sua chave do Google AI Studio (aistudio.google.com). Gratuita, sem cartão. Guardada apenas no seu browser.",
+  },
+  en:{
+    subtitle:"Stock Market Intelligence Terminal",
+    searchLabel:"— Enter a stock ticker",
+    analyzeBtn:"▶ Analyze",analyzing:"Analyzing...",processingData:"PROCESSING MARKET DATA",
+    liveAnalysis:"LIVE ANALYSIS",downloadPdf:"⤓ Download PDF",reportGenerated:"REPORT GENERATED",
+    phases:["Running real-time market searches...","Fetching current price & 52-week range...","Verifying dividend & payout ratio data...","Analyzing balance sheet, debt & shares outstanding...","Analyzing macroeconomic context...","Evaluating fundamentals & business quality...","Calculating reasonable long-term price...","Evaluating value signals & red flags...","Assessing data reliability...","Generating final report..."],
+    macroLbl:"Macro",fundLbl:"Fundamental",techLbl:"Quality",genLbl:"Overall",
+    currentPrice:"Current price",vsYest:"vs previous close",
+    priceDataLbl:"PRICE DATA",
+    priceSourceNote:"Data retrieved via web search.",
+    delayWarn:"⚠ Price may have a 15-20 min delay (real-time market data requires a premium subscription). Always verify with your broker before trading.",
+    realtimeOk:"✓ Real-time price confirmed via web search.",
+    range52:"52-week range",min52:"52W Low",max52:"52W High",
+    fairValueTitle:"Reasonable Price · Long-Term Investor",
+    fvLabel:"Fair Value",discLabel:"Discounted Price",marginLabel:"Margin of Safety",
+    fvBadge:"ESTIMATE",discBadge:"IDEAL ENTRY",marginBadge:"PROTECTION",
+    fvSub:"Analytical estimate",discSub:"Entry target",marginSub:"Lower price limit",
+    vsPrice:"vs current price",
+    fvRationale:"▸ VALUATION RATIONALE · ",
+    fvDisclaimer:"⚠ These values are analytical estimates based on historical multiples and fundamental data. They are NOT guaranteed prices. Always do your own research before investing.",
+    divTitle:"Current Dividend & Payout",
+    dyLabel:"Current Dividend Yield",prLabel:"Current Payout Ratio",
+    confirmed:"CONFIRMED",estimated:"ESTIMATED",notAvailable:"Not available",
+    flagsTitle:"⚑ KEY ALERTS & SIGNALS",
+    noFlags:"No notable alerts identified.",
+    macroTitle:"Macroeconomic",fundTitle:"Fundamental Analysis",qualityTitle:"Business Quality",confTitle:"Analysis Reliability",
+    confIntro:"Score 1–10 on the accuracy of each field. High = confirmed from web sources. Low = estimate or no direct source found.",
+    cfld:"Field",cscr:"Score",cbar:"Reliability",cnote:"Note",
+    flds:{price_data:"Price & Market Data",macro:"Macroeconomic Analysis",fundamental:"Fundamental Analysis",quality:"Business Quality",dividend_data:"Current Dividend & Payout",flags_data:"Alerts & Signals",fair_value:"Reasonable Price LT"},
+    icons:{price_data:"💰",macro:"🌍",fundamental:"📊",quality:"⭐",dividend_data:"💸",flags_data:"⚑",fair_value:"🎯"},
+    bull:"Bullish",bear:"Bearish",neutral:"Neutral",
+    apiKeyLbl:"Anthropic API Key",
+    apiKeyNote:"Enter your Anthropic API key (console.anthropic.com). It is stored only in your browser (localStorage) and never sent to any external server.",
+    apiKeySave:"Save",apiKeyOk:"Key saved · Ready to analyze",
+    errNoKey:"🔑 Please enter your Anthropic API key in the section above first.",
+    errCrypto:"🪙 Cryptocurrency analysis not available\n\nThis app is designed for listed equities and ETFs only.\n\nTry: AAPL · MSFT · NVDA · TSLA · AMZN · META · GOOGL",
+    errInvalid:(t)=>`⚠ Unrecognized ticker: "${t}"\n\nNo listed company found with that symbol. Check the ticker on Google Finance or your broker.`,
+    errRate:()=>`⏱ Usage limit reached\n\nThe API request quota has been exceeded. Please wait a few minutes and try again.`,
+    errGen:(t,m)=>`Could not complete the analysis for "${t}".\n\n${m}`,
+    foot:"AI-generated analysis with real-time web search · Prices may have a time lag · Not financial advice · Always verify in official sources before investing",
+    noData:"No data available",dataSources:"SOURCES CONSULTED",
+    profileBadge:"📈 LONG-TERM INVESTOR",
+    cacheNote:"Cached analysis",
+    demoTitle:"DEMO MODE — No API key",
+    demoNote:"Sample analysis with real market data. Prices and metrics change daily — this data has a fixed date and is indicative only. Enter your API key for real-time analysis.",
+    demoBtn:"View sample analysis",
+    demoBanner:"⚠ DEMO · Fixed-date data · Not current prices · For interface evaluation only",
+    demoTickers:"Choose a company to see the demo analysis:",
+    apiNoteAnthropic:"Enter your Anthropic API key (console.anthropic.com). Stored only in your browser, never sent to external servers.",
+    apiNoteGemini:"Enter your Google AI Studio key (aistudio.google.com). Free, no credit card. Stored only in your browser.",
+  }
+};
+
+const CRYPTOS=new Set(["BTC","ETH","BNB","XRP","ADA","SOL","DOGE","DOT","MATIC","LTC","AVAX","LINK","UNI","ATOM","XLM","VET","ICP","FIL","TRX","ETC","ALGO","MANA","SAND","AXS","THETA","FTM","HBAR","EGLD","NEAR","ONE","FLOW","ROSE","KLAY","ENJ","CHZ","BAT","ZIL","HOT","CELO","QTUM","WAVES","XTZ","DASH","ZEC","EOS","BCH","BSV","XMR","NEO","IOTA","LUNA","UST","USDT","USDC","BUSD","DAI","SHIB","PEPE","WIF","BONK","SUI","APT","ARB","OP","INJ","SEI","TIA","PYTH","JTO","STRK","BTCUSDT","ETHUSDT","BNBUSDT","SOLUSDT"]);
+
+// ══════════════════════════════════════════════════════════
+// DEMO DATA — pre-generated analyses, fixed date
+// Prices reflect approx. Feb 2025 levels (indicative only)
+// ══════════════════════════════════════════════════════════
+const DEMO_DATA = {
+  AAPL: {
+    ticker:"AAPL", company_name:"Apple Inc.", sector:"Technology", country:"United States",
+    exchange:"NASDAQ", currency:"USD", current_price:227.48, price_change_pct:0.82,
+    price_is_realtime:false,
+    price_source_note:"DEMO — precio orientativo de Feb 2025. No es el precio actual de mercado.",
+    week52_low:164.08, week52_high:260.10, market_cap:"3.4T USD",
+    fair_value_low:200.00, fair_value_high:240.00, fair_value_mid:220.00,
+    margin_of_safety_price:176.00,
+    fair_value_rationale:"Valoración basada en múltiplos históricos: P/E ~28x sobre BPA estimado de $7.8 para 2025, EV/EBITDA ~22x. Targets de analistas en rango $210-$250. El modelo de servicios (App Store, iCloud, Apple TV+) reduce la ciclicidad y justifica prima sobre el sector. Estimación moderada-conservadora.",
+    dividend_yield_current:0.45, dividend_yield_confirmed:true,
+    payout_ratio_current:15.2, payout_ratio_confirmed:true,
+    flags:[
+      {type:"ok", text:"Recompra de acciones muy activa: Apple recompró $90B en acciones en 2024, reduciendo el float consistentemente."},
+      {type:"ok", text:"Caja neta positiva: ~$50B de caja neta tras deuda. Balance sólido."},
+      {type:"warn", text:"Dependencia de iPhone: el 52% de los ingresos sigue viniendo del iPhone. Cualquier ciclo de actualización débil impacta los resultados."},
+      {type:"info", text:"Expansión de servicios: los ingresos por servicios crecen al 13% anual y tienen márgenes del 74%, mejorando la calidad del negocio."}
+    ],
+    data_sources:["finance.yahoo.com","macrotrends.net","wsj.com","DEMO"],
+    macro:"[DEMO] El entorno macroeconómico para Apple en 2025 está marcado por la política monetaria de la Fed, que mantiene tipos en zona restrictiva pero con expectativas de recortes graduales. La inflación en EE.UU. ha moderado hacia el 2.5-3%, lo que favorece el consumo de bienes de alta gama. El mercado laboral sigue robusto, sosteniendo la demanda de dispositivos premium. El riesgo geopolítico más relevante para Apple es la tensión EE.UU.-China: el 18% de las ventas proviene de la Gran China, y cualquier escalada arancelaria o restricción de acceso al mercado chino afectaría directamente los ingresos. La diversificación de la cadena de suministro hacia India (iPhone 16 producido parcialmente allí) mitiga parcialmente este riesgo a largo plazo.",
+    fundamental:"[DEMO] Apple genera ~$390B en ingresos anuales con un margen operativo del 31% y un FCF de ~$110B, lo que la convierte en una de las mayores generadoras de caja del mundo. El BPA ajustado ronda los $6.50-$7.00 para el año fiscal 2024. El ROE supera el 150% debido al agresivo programa de recompras que ha reducido el equity contable. La deuda bruta es de ~$100B pero la caja de ~$150B deja una posición neta cómoda. El P/E actual (~29x) está en la parte alta del rango histórico de 5 años (18-32x), sin margen de seguridad amplio a los precios actuales. El dividendo es simbólico (0.45%) pero el retorno total vía recompras es mucho más relevante: Apple ha eliminado el 40% de sus acciones en circulación en la última década.",
+    quality:"[DEMO] Apple posee uno de los fosos competitivos más profundos del mundo: el ecosistema iOS crea costes de cambio altísimos para el usuario (datos, apps, hábitos, accesorios). La marca premium permite mantener márgenes superiores a cualquier competidor en hardware. El segmento de servicios (App Store, iCloud, Apple Pay, Apple TV+) genera ingresos recurrentes de alta visibilidad y márgenes ~74%, transformando a Apple de empresa de hardware a plataforma de servicios con hardware. La calidad de gestión bajo Tim Cook ha sido financieramente disciplinada: capital allocation excepcional vía recompras. El riesgo estructural a largo plazo es la maduración del mercado de smartphones en mercados desarrollados y la competencia china en mercados emergentes (Huawei, Xiaomi).",
+    macro_sentiment:"Neutro", fundamental_sentiment:"Alcista", quality_sentiment:"Alcista", overall:"Alcista",
+    confidence:{
+      price_data:3, price_data_note:"DEMO — precio de referencia Feb 2025, no tiempo real.",
+      macro:5, macro_note:"DEMO — análisis de contexto general, no búsqueda web en tiempo real.",
+      fundamental:5, fundamental_note:"DEMO — métricas aproximadas del año fiscal 2024.",
+      quality:7, quality_note:"DEMO — análisis cualitativo del moat, relativamente estable.",
+      dividend_data:6, dividend_data_note:"DEMO — yield y payout de referencia, puede haber variado.",
+      flags_data:5, flags_data_note:"DEMO — flags basadas en conocimiento general.",
+      fair_value:4, fair_value_note:"DEMO — estimación orientativa. Siempre verifica con análisis actualizado."
+    },
+    date:"Demo · Datos de referencia Feb 2025", _isDemo:true
+  },
+  MSFT: {
+    ticker:"MSFT", company_name:"Microsoft Corporation", sector:"Technology", country:"United States",
+    exchange:"NASDAQ", currency:"USD", current_price:415.32, price_change_pct:-0.34,
+    price_is_realtime:false,
+    price_source_note:"DEMO — precio orientativo de Feb 2025. No es el precio actual de mercado.",
+    week52_low:385.58, week52_high:468.35, market_cap:"3.1T USD",
+    fair_value_low:380.00, fair_value_high:450.00, fair_value_mid:415.00,
+    margin_of_safety_price:332.00,
+    fair_value_rationale:"Valoración basada en P/E ~32x sobre BPA estimado de $13 para FY2025, EV/EBITDA ~24x. El crecimiento de Azure (cloud) al 28-30% anual y la integración de IA (Copilot) justifican una prima respecto al mercado. Targets de analistas en rango $400-$490. La valoración actual está en zona justa-ligeramente cara para un inversor de largo plazo conservador.",
+    dividend_yield_current:0.72, dividend_yield_confirmed:true,
+    payout_ratio_current:24.5, payout_ratio_confirmed:true,
+    flags:[
+      {type:"ok", text:"Crecimiento de Azure sostenido: cloud crece ~28% anual, con backlog de contratos de $235B que da visibilidad a largo plazo."},
+      {type:"ok", text:"Integración de IA: Copilot integrado en el ecosistema Office/Azure es una ventaja competitiva real que acelera la adopción empresarial."},
+      {type:"info", text:"Adquisición de Activision Blizzard ($69B): aumentó la deuda pero diversifica hacia gaming. Integración en curso."},
+      {type:"warn", text:"Valoración exigente: cotiza a >32x beneficios. Cualquier decepción en el crecimiento de Azure podría generar una corrección significativa."}
+    ],
+    data_sources:["finance.yahoo.com","macrotrends.net","DEMO"],
+    macro:"[DEMO] Microsoft se beneficia del ciclo de inversión empresarial en IA y cloud que es estructural y multianual. La política fiscal expansiva en EE.UU. sostiene el gasto corporativo en IT. El riesgo regulatorio antimonopolio en Europa (Teams, bundling) es real pero manejable. Los tipos de interés altos tienen un impacto menor en Microsoft dado que es net cash y sus clientes empresariales tienen contratos plurianuales.",
+    fundamental:"[DEMO] Microsoft genera ~$245B en ingresos con margen operativo del 44% y FCF de ~$90B anuales. El segmento Intelligent Cloud (Azure) representa el 43% de los ingresos y crece al 28% anual. El segmento Productivity (Office 365, LinkedIn) crece al 12% con márgenes altísimos. El balance es net cash tras la integración de Activision. BPA ~$12.50-$13.00 para FY2025. ROE del 38%.",
+    quality:"[DEMO] Microsoft tiene uno de los fosos competitivos más amplios del sector tech: dominio en software empresarial (Office, Teams, Azure Active Directory) con costes de cambio enormes para las empresas. La posición en cloud (Azure, #2 mundial) con crecimiento superior a la industria. La apuesta por IA vía inversión en OpenAI y Copilot es la más integrada del sector. Gestión de Satya Nadella con track record excepcional de transformación y asignación de capital.",
+    macro_sentiment:"Alcista", fundamental_sentiment:"Alcista", quality_sentiment:"Alcista", overall:"Alcista",
+    confidence:{
+      price_data:3, price_data_note:"DEMO — precio de referencia Feb 2025.",
+      macro:5, macro_note:"DEMO — análisis general.",
+      fundamental:5, fundamental_note:"DEMO — métricas FY2024 aproximadas.",
+      quality:7, quality_note:"DEMO — moat muy estable y bien documentado.",
+      dividend_data:6, dividend_data_note:"DEMO — yield y payout de referencia.",
+      flags_data:5, flags_data_note:"DEMO — flags de conocimiento general.",
+      fair_value:4, fair_value_note:"DEMO — estimación orientativa."
+    },
+    date:"Demo · Datos de referencia Feb 2025", _isDemo:true
+  },
+  NVDA: {
+    ticker:"NVDA", company_name:"NVIDIA Corporation", sector:"Semiconductors", country:"United States",
+    exchange:"NASDAQ", currency:"USD", current_price:138.85, price_change_pct:2.15,
+    price_is_realtime:false,
+    price_source_note:"DEMO — precio orientativo de Feb 2025. No es el precio actual de mercado.",
+    week52_low:47.32, week52_high:153.13, market_cap:"3.4T USD",
+    fair_value_low:100.00, fair_value_high:160.00, fair_value_mid:130.00,
+    margin_of_safety_price:104.00,
+    fair_value_rationale:"Valoración extremadamente difícil dado el crecimiento explosivo. P/E ~35x sobre BPA FY2026 estimado de $4.00, asumiendo desaceleración desde el crecimiento actual. Targets de analistas en rango $130-$200. El rango amplio refleja la incertidumbre real: si el ciclo de inversión en IA se sostiene, NVDA está barata; si hay normalización brusca, está cara. Estimación conservadora para inversor de largo plazo.",
+    dividend_yield_current:0.03, dividend_yield_confirmed:true,
+    payout_ratio_current:1.1, payout_ratio_confirmed:true,
+    flags:[
+      {type:"warn", text:"Concentración de clientes: los hyperscalers (Microsoft, Google, Amazon, Meta) representan ~40% de los ingresos. Un frenazo en su capex de IA impactaría directamente."},
+      {type:"warn", text:"Restricciones de exportación a China: el gobierno de EE.UU. ha limitado la venta de chips H100/H200 a China, reduciendo el TAM accesible."},
+      {type:"ok", text:"CUDA como foso competitivo: el ecosistema de software CUDA tiene 4 millones de desarrolladores y es casi imposible de replicar en el corto plazo."},
+      {type:"info", text:"Blackwell (GB200): la nueva arquitectura tiene demanda que supera la oferta. TSMC tiene capacidad limitada, lo que podría retrasar entregas pero también sostiene los precios."}
+    ],
+    data_sources:["finance.yahoo.com","DEMO"],
+    macro:"[DEMO] NVIDIA es el principal beneficiario del ciclo de inversión en infraestructura de IA. Los grandes modelos de lenguaje (LLMs) requieren miles de GPUs H100/H200/Blackwell para entrenamiento e inferencia. Este ciclo de inversión es estructural (2024-2028 según la mayoría de analistas) pero inevitablemente cíclico. El riesgo macro más relevante es una recesión en EE.UU. que frene el capex tecnológico, o una burbuja en las valoraciones de startups de IA que reduzca la demanda de infraestructura.",
+    fundamental:"[DEMO] NVIDIA ha pasado de $27B de ingresos en FY2023 a ~$130B estimados en FY2025, un crecimiento sin precedentes en la historia de los semiconductores. El margen bruto del segmento Data Center supera el 75%. El FCF es enorme pero la valoración actual ya descuenta varios años de crecimiento acelerado. BPA FY2025 estimado: ~$2.90-$3.10 (ajustado por splits). La posición de caja neta es sólida (~$26B). El mayor riesgo fundamental es la normalización del ciclo de inversión en IA.",
+    quality:"[DEMO] El foso de NVIDIA descansa en tres pilares: hardware superior (arquitecturas GPU con ventaja de 2-3 generaciones sobre AMD/Intel), software CUDA (ecosistema de 4M+ desarrolladores con años de código escrito para CUDA), y relación con los hyperscalers (co-diseño de chips, roadmap compartido). La capacidad de innovación de Jensen Huang y su equipo es reconocida en la industria. El riesgo cualitativo más serio es la amenaza de que los hyperscalers diseñen sus propios chips (Google TPU, AWS Trainium, Microsoft Maia) reduciendo la dependencia de NVDA.",
+    macro_sentiment:"Alcista", fundamental_sentiment:"Alcista", quality_sentiment:"Alcista", overall:"Alcista",
+    confidence:{
+      price_data:3, price_data_note:"DEMO — precio de referencia Feb 2025.",
+      macro:5, macro_note:"DEMO — análisis general del ciclo IA.",
+      fundamental:4, fundamental_note:"DEMO — métricas de muy alto crecimiento, muy sujetas a revisión.",
+      quality:6, quality_note:"DEMO — análisis del moat relativamente estable.",
+      dividend_data:7, dividend_data_note:"DEMO — dividendo casi simbólico, bien documentado.",
+      flags_data:5, flags_data_note:"DEMO — flags de conocimiento general.",
+      fair_value:3, fair_value_note:"DEMO — valoración muy incierta dado el crecimiento explosivo. Rango amplio intencionalmente."
+    },
+    date:"Demo · Datos de referencia Feb 2025", _isDemo:true
+  },
+  SAN: {
+    ticker:"SAN", company_name:"Banco Santander S.A.", sector:"Banca", country:"España",
+    exchange:"BME", currency:"EUR", current_price:5.42, price_change_pct:0.56,
+    price_is_realtime:false,
+    price_source_note:"DEMO — precio orientativo de Feb 2025. No es el precio actual de mercado.",
+    week52_low:3.90, week52_high:5.65, market_cap:"92B EUR",
+    fair_value_low:4.80, fair_value_high:6.20, fair_value_mid:5.50,
+    margin_of_safety_price:4.40,
+    fair_value_rationale:"Valoración basada en P/BV ~0.75x sobre valor en libros estimado de $7.3/acción para 2025, y P/E ~7x sobre BPA estimado de €0.78. Los bancos europeos cotizan con descuento estructural respecto a americanos. Targets de analistas en rango €5.00-€6.50. La elevada rentabilidad actual (ROTE >15%) podría comprimir el descuento si se mantiene. Valoración atractiva para perfil largo plazo.",
+    dividend_yield_current:4.35, dividend_yield_confirmed:true,
+    payout_ratio_current:52.0, payout_ratio_confirmed:true,
+    flags:[
+      {type:"ok", text:"Rentabilidad récord: ROTE del 15.9% en 2024, el más alto en 15 años. El beneficio neto superó los €12.5B."},
+      {type:"ok", text:"Diversificación geográfica: presencia en 10 mercados core (España, Brasil, México, EE.UU., UK...) reduce la dependencia de un solo ciclo económico."},
+      {type:"warn", text:"Exposición a Brasil (23% del beneficio): el real brasileño es volátil y la economía brasileña cíclica. Una crisis en EM impacta significativamente."},
+      {type:"warn", text:"Reducción de acciones en circulación lenta: el programa de recompras existe pero el dilución histórica por ampliaciones de capital ha sido un lastre para el accionista."},
+      {type:"info", text:"Tipos de interés a la baja en Europa: la bajada de tipos del BCE reducirá el margen de intereses neto gradualmente desde 2025-2026."}
+    ],
+    data_sources:["finance.yahoo.com","bolsamadrid.es","DEMO"],
+    macro:"[DEMO] Banco Santander opera en un entorno donde el BCE ha iniciado el ciclo de bajadas de tipos (desde el 4% al 3% en 2024, con más bajadas esperadas). Esto comprimirá los márgenes de intereses netos gradualmente, aunque el efecto completo tarda 12-18 meses en materializarse. La economía española crece por encima de la media europea (+2.7% PIB en 2024), lo que beneficia al negocio doméstico. Los mercados emergentes (Brasil, México) aportan crecimiento pero también volatilidad cambiaria.",
+    fundamental:"[DEMO] Santander generó un beneficio atribuido récord de €12.5B en 2024 (+14% vs 2023). El margen de intereses neto es robusto pero empezará a normalizarse con las bajadas del BCE. La ratio CET1 (capital) está en 12.5%, cómoda por encima de los mínimos regulatorios. El dividendo actual implica un yield del 4.3% con un payout sostenible del 52%. La ratio de morosidad está bajo control (~3%). BPA ~€0.75-€0.80 estimado para 2025.",
+    quality:"[DEMO] Santander tiene un modelo de negocio de banca universal diversificado geográficamente que le da resiliencia ante crisis locales. La marca es sólida en todos sus mercados core. El riesgo cualitativo más importante para un inversor largo plazo es la regulación bancaria creciente (Basilea IV, requerimientos de capital) y la disrupción digital (neobancos, fintech). Openbank (su banco 100% digital) es una respuesta estratégica relevante. La gestión de Ana Botín ha priorizado rentabilidad sobre crecimiento del balance, lo que es positivo para el accionista.",
+    macro_sentiment:"Neutro", fundamental_sentiment:"Alcista", quality_sentiment:"Neutro", overall:"Alcista",
+    confidence:{
+      price_data:3, price_data_note:"DEMO — precio de referencia Feb 2025.",
+      macro:5, macro_note:"DEMO — análisis del entorno europeo/EM.",
+      fundamental:5, fundamental_note:"DEMO — métricas del ejercicio 2024.",
+      quality:6, quality_note:"DEMO — análisis del modelo bancario.",
+      dividend_data:6, dividend_data_note:"DEMO — yield y payout de referencia 2024.",
+      flags_data:5, flags_data_note:"DEMO — flags de conocimiento general.",
+      fair_value:4, fair_value_note:"DEMO — valoración bancaria por P/BV y P/E. Estimación orientativa."
+    },
+    date:"Demo · Datos de referencia Feb 2025", _isDemo:true
+  }
+};
+
+// ══════════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════════
+let lang = 'es';
+let currentResult = null;
+let phaseTimer = null;
+let aiProvider = localStorage.getItem('axiosiq_provider') || 'gemini'; // 'anthropic' | 'gemini'
+
+// ══════════════════════════════════════════════════════════
+// CACHE (localStorage, 4h TTL)
+// ══════════════════════════════════════════════════════════
+const CACHE_TTL = 4 * 60 * 60 * 1000; // 4 hours
+function cacheKey(ticker, lang){ return `axiosiq_v2_${ticker}_${lang}`; }
+function getCache(ticker, lang){
+  try{
+    const raw = localStorage.getItem(cacheKey(ticker, lang));
+    if(!raw) return null;
+    const obj = JSON.parse(raw);
+    if(Date.now() - obj.ts > CACHE_TTL){ localStorage.removeItem(cacheKey(ticker, lang)); return null; }
+    return obj.data;
+  }catch(_){ return null; }
+}
+function setCache(ticker, lang, data){
+  try{ localStorage.setItem(cacheKey(ticker, lang), JSON.stringify({ts:Date.now(), data})); }catch(_){}
+}
+
+// ══════════════════════════════════════════════════════════
+// API KEY & PROVIDER
+// ══════════════════════════════════════════════════════════
+function provStorageKey(){ return aiProvider==='gemini' ? 'axiosiq_gemini_key' : 'axiosiq_api_key'; }
+function loadApiKey(){ return localStorage.getItem(provStorageKey())||''; }
+
+function setProvider(p){
+  aiProvider = p;
+  localStorage.setItem('axiosiq_provider', p);
+  const isGem = p === 'gemini';
+  const t = T[lang];
+
+  // Toggle buttons
+  document.getElementById('prov-ant').className = 'prov-btn' + (p==='anthropic' ? ' sel-ant' : '');
+  document.getElementById('prov-gem').className = 'prov-btn' + (p==='gemini'    ? ' sel-gem' : '');
+  // Box border
+  document.getElementById('api-box').classList.toggle('gemini-mode', isGem);
+  // Input style + placeholder
+  const inp = document.getElementById('api-key-input');
+  inp.classList.toggle('gem-in', isGem);
+  inp.placeholder = isGem ? 'AIzaSy...' : 'sk-ant-api03-...';
+  inp.value = '';
+  // Note text
+  document.getElementById('api-note').textContent = isGem ? t.apiNoteGemini : t.apiNoteAnthropic;
+  // Save button style
+  document.getElementById('api-save-btn').classList.toggle('gem-save', isGem);
+  // Gemini notices
+  document.getElementById('gem-warn').classList.toggle('on', isGem);
+  document.getElementById('gem-howto').classList.toggle('on', isGem);
+  // Reset ok indicator then re-check saved key
+  document.getElementById('api-ok').style.display = 'none';
+  showApiOk();
+  updateDemoBoxVisibility();
+}
+
+function saveApiKey(){
+  const key = document.getElementById('api-key-input').value.trim();
+  if(!key) return;
+  // Reject if user pastes the masked placeholder
+  if(key.includes('••')) return;
+  localStorage.setItem(provStorageKey(), key);
+  showApiOk();
+  updateDemoBoxVisibility();
+}
+
+function showApiOk(){
+  const key = loadApiKey();
+  if(key){
+    document.getElementById('api-ok').style.display='flex';
+    document.getElementById('api-key-input').value = aiProvider==='gemini' ? 'AIzaSy••••••••••••' : 'sk-ant-••••••••••••••••';
+    document.getElementById('api-ok-txt').textContent = T[lang].apiKeyOk;
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// LANG
+// ══════════════════════════════════════════════════════════
+function setLang(l){
+  lang = l;
+  ['es','pt','en'].forEach(c=>{
+    document.getElementById('btn-'+c).classList.toggle('active', c===l);
+  });
+  const t = T[l];
+  document.getElementById('subtitle').textContent = t.subtitle;
+  document.getElementById('search-lbl').textContent = t.searchLabel;
+  document.getElementById('go-btn').textContent = t.analyzeBtn;
+  document.getElementById('live-txt').textContent = t.liveAnalysis;
+  document.getElementById('api-lbl').textContent = t.apiKeyLbl;
+  document.getElementById('api-note').textContent = t.apiKeyNote;
+  document.getElementById('api-save-btn').textContent = t.apiKeySave;
+  document.getElementById('api-ok-txt').textContent = t.apiKeyOk;
+  // Demo box texts
+  const demoTitle = document.getElementById('demo-title');
+  const demoNote  = document.getElementById('demo-note');
+  const demoLbl   = document.getElementById('demo-tickers-lbl');
+  if(demoTitle) demoTitle.textContent = t.demoTitle;
+  if(demoNote)  demoNote.textContent  = t.demoNote;
+  if(demoLbl)   demoLbl.textContent   = t.demoTickers;
+  // Tab labels
+  const tabLbls = {es:['ANALIZADOR','ACADEMIA'],pt:['ANALISADOR','ACADEMIA'],en:['ANALYZER','ACADEMY']};
+  document.getElementById('tab-analyzer-lbl').textContent = tabLbls[l][0];
+  document.getElementById('tab-academy-lbl').textContent  = tabLbls[l][1];
+  if(activeTab==='academy') renderAcademy();
+  // Refresh provider note in current language
+  const isGem = aiProvider==='gemini';
+  const noteEl = document.getElementById('api-note');
+  if(noteEl) noteEl.textContent = isGem ? T[l].apiNoteGemini : T[l].apiNoteAnthropic;
+  if(currentResult) renderResults(currentResult, false);
+}
+
+// ══════════════════════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════════════════════
+function n(v,d=2){ const x=parseFloat(v); if(isNaN(x)) return '—'; const lc=lang==='en'?'en-GB':lang==='pt'?'pt-PT':'es-ES'; return x.toLocaleString(lc,{minimumFractionDigits:d,maximumFractionDigits:d}); }
+function pct(a,b){ if(!a||!b||isNaN(a)||isNaN(b)) return null; const d=((a-b)/b)*100; return (d>=0?'+':'')+d.toFixed(1)+'%'; }
+function cl(v,lo,hi){ return hi===lo?0:Math.max(0,Math.min(100,((v-lo)/(hi-lo))*100)); }
+function sentClass(s){
+  if(!s) return 'neutral';
+  const v=s.toLowerCase();
+  if(v.includes('bull')||v.includes('alcista')||v.includes('alta')||v.includes('positiv')) return 'bull';
+  if(v.includes('bear')||v.includes('bajista')||v.includes('baixa')||v.includes('negativ')) return 'bear';
+  return 'neutral';
+}
+function confColor(s){ return s>=7?'var(--a1)':s>=5?'var(--a2)':'var(--red)'; }
+function confClass(s){ return s>=7?'ch':s>=5?'cm':'cl'; }
+function avgConf(c){
+  if(!c) return 0;
+  const vals=['price_data','macro','fundamental','quality','dividend_data','flags_data','fair_value'].map(k=>parseFloat(c[k])||0);
+  return vals.reduce((a,b)=>a+b,0)/vals.length;
+}
+function confBadge(score){
+  if(score==null) return '';
+  return `<span class="cbadge ${confClass(score)}"><span class="cdot"></span>${score}/10</span>`;
+}
+
+// ══════════════════════════════════════════════════════════
+// PROMPT — Long-term investor oriented, anti-hallucination
+// ══════════════════════════════════════════════════════════
+function buildPrompt(ticker, lang){
+  const langMap={es:"Redacta TODO en español.",pt:"Redige TODO em português de Portugal.",en:"Write EVERYTHING in English."};
+  const li=langMap[lang];
+  const BULL=lang==='en'?'Bullish':lang==='pt'?'Alta':'Alcista';
+  const BEAR=lang==='en'?'Bearish':lang==='pt'?'Baixa':'Bajista';
+  const NEUT=lang==='en'?'Neutral':'Neutro';
+
+  return `You are an expert financial analyst specialising in long-term value investing. ${li}
+
+## TASK
+Analyse the stock ticker: ${ticker}
+
+## MANDATORY SEARCH PROTOCOL — perform ALL searches before writing:
+1. "${ticker} stock price today current 2025"
+2. "${ticker} 52-week high low range 2025"
+3. "${ticker} dividend yield payout ratio current 2025"
+4. "${ticker} net debt shares outstanding dilution 2025"
+5. "${ticker} P/E EV/EBITDA fair value intrinsic value analyst target 2025"
+6. "${ticker} financial results earnings quality moat 2025"
+
+Do NOT skip any search. Do NOT fabricate data you did not find.
+
+## FAIR VALUE — INSTRUCCIONES CRÍTICAS (lee con atención):
+- fair_value_low, fair_value_high, fair_value_mid: SOLO rellena si encontraste en búsqueda web AL MENOS UNO de: (a) target de analistas con precio concreto, (b) múltiplo P/E o EV/EBITDA con BPA estimado concreto, (c) valoración DCF de fuente reconocida. Si no encontraste ninguno de estos, devuelve null en los tres campos.
+- Si encontraste targets de analistas, úsalos como referencia principal y cítalos explícitamente en fair_value_rationale.
+- Si solo tienes el P/E actual y el BPA del último año, puedes estimar un rango usando múltiplos históricos del sector, pero marca confidence fair_value ≤ 5 y explícalo en fair_value_note.
+- NUNCA inventes un precio razonable basándote solo en el precio actual o en intuición general. Si no hay datos, null.
+- fair_value_note SIEMPRE debe explicar exactamente qué datos encontraste y qué metodología usaste. Si es estimación propia, dilo explícitamente.
+- margin_of_safety_price: si tienes fair_value_mid, calcula como fair_value_mid × 0.75 (25% de descuento). Si fair_value_mid es null, también null.
+
+## INVESTOR PROFILE: LONG-TERM / BUY & HOLD
+This analysis is for a long-term buy-and-hold investor, NOT a trader. Focus on:
+- Business quality, competitive moat, earnings power
+- Fair/intrinsic value estimation (not short-term trading levels)
+- Dividend sustainability and payout ratio health
+- Debt trends and share dilution/buyback flags
+- Long-term risks and structural tailwinds/headwinds
+
+## HONESTY RULES (CRITICAL):
+- If you cannot find an exact numeric value via web search, use null for that field.
+- NEVER invent specific financial figures. Qualitative commentary is acceptable.
+- For price_is_realtime: set true ONLY if you found the price on a source clearly showing today's date and intraday data (e.g. Yahoo Finance with today's date). Otherwise false.
+- Confidence scores: confirmed via web = 7-9, reasoned estimate = 4-6, guessed = 1-3.
+- For fair_value_low and fair_value_high: base on DCF, P/E, EV/EBITDA multiples found in search. If no data found, use null. ALWAYS confidence ≤ 7 for these.
+- For flags: list only real, verifiable concerns or positives. Do not invent flags.
+
+## OUTPUT — respond ONLY with this exact JSON (no markdown, no extra text):
+{
+  "company_name": "Full legal company name",
+  "sector": "Sector",
+  "country": "Country",
+  "exchange": "Primary exchange",
+  "currency": "USD",
+  "current_price": 123.45,
+  "price_change_pct": 1.23,
+  "price_is_realtime": true,
+  "price_source_note": "Brief note: where was price found and is it real-time or delayed?",
+  "week52_low": 100.00,
+  "week52_high": 200.00,
+  "market_cap": "e.g. 2.8T USD",
+  "fair_value_low": 140.00,
+  "fair_value_high": 165.00,
+  "fair_value_mid": 152.50,
+  "margin_of_safety_price": 122.00,
+  "fair_value_rationale": "3-4 sentence explanation of the valuation methodology used: which multiples, what analyst targets found, what DCF assumptions. Be explicit about what was found vs estimated.",
+  "dividend_yield_current": 2.15,
+  "dividend_yield_confirmed": true,
+  "payout_ratio_current": 38.5,
+  "payout_ratio_confirmed": true,
+  "flags": [
+    {"type": "warn|ok|info", "text": "Concise flag description. E.g.: 'Deuda neta aumentó 40% interanual — revisar tendencia' or 'Recompra activa de acciones — positivo para accionistas'"}
+  ],
+  "data_sources": ["source1.com", "source2.com"],
+  "macro": "Macroeconomic analysis (min 200 words): global context, monetary policy, interest rates, inflation, sector trends, geopolitical risks specific to this company.",
+  "fundamental": "Fundamental analysis for long-term investor (min 250 words): business model quality, revenue trends, operating margins, FCF generation, balance sheet, key valuation ratios FOUND (P/E, EV/EBITDA, P/FCF, ROE, ROIC — flag estimated vs confirmed), competitive moat, dividend policy and sustainability. Explicitly state which figures were found via search.",
+  "quality": "Business quality & long-term outlook (min 200 words): competitive advantages (moat), management quality signals, industry positioning, structural growth or decline trends, ESG considerations if relevant, key long-term risks. This section replaces technical analysis for long-term investors.",
+  "macro_sentiment": "${BULL} | ${NEUT} | ${BEAR}",
+  "fundamental_sentiment": "${BULL} | ${NEUT} | ${BEAR}",
+  "quality_sentiment": "${BULL} | ${NEUT} | ${BEAR}",
+  "overall": "${BULL} | ${NEUT} | ${BEAR}",
+  "confidence": {
+    "price_data": 8, "price_data_note": "Was price confirmed for today? Was 52W range found?",
+    "macro": 7, "macro_note": "Is macro based on recent sources or general knowledge?",
+    "fundamental": 6, "fundamental_note": "Which ratios confirmed vs estimated? Source?",
+    "quality": 6, "quality_note": "Is moat analysis based on confirmed data or general knowledge?",
+    "dividend_data": 7, "dividend_data_note": "Was current yield/payout found in search? Which source?",
+    "flags_data": 6, "flags_data_note": "Are flags based on confirmed data or inferred?",
+    "fair_value": 5, "fair_value_note": "Always ≤7. What methodology? Confirmed targets vs estimates?"
+  }
+}
+
+Replace pipe-separated sentiment options with EXACTLY ONE option shown. Use null (not 0, not N/A) for unconfirmed numeric fields.`;
+}
+
+// ══════════════════════════════════════════════════════════
+// SAFE HELPERS — null/undefined proof
+// ══════════════════════════════════════════════════════════
+function safe(v, fallback='—'){ return (v != null && v !== '' && !Number.isNaN(v)) ? v : fallback; }
+function safeNum(v){ const x = parseFloat(v); return isNaN(x) ? null : x; }
+function safeStr(v, fallback='—'){ return (v && String(v).trim()) ? String(v).trim() : fallback; }
+function safeArr(v){ return Array.isArray(v) ? v : []; }
+function safeConf(c, key){ if(!c || c[key] == null) return 0; const x = parseFloat(c[key]); return isNaN(x) ? 0 : x; }
+function safeNote(c, key){ return (c && c[key+'_note'] && String(c[key+'_note']).trim()) ? String(c[key+'_note']).trim() : ''; }
+
+// ══════════════════════════════════════════════════════════
+// RENDER
+// ══════════════════════════════════════════════════════════
+function renderResults(r, fromCache){
+  const t = T[lang];
+  const isDemo = !!r._isDemo;
+  const cur = safeStr(r.currency, '');
+  const chg = safeNum(r.price_change_pct);
+  const chgOk = chg !== null;
+  const chgCol = chgOk ? (chg >= 0 ? 'var(--a1)' : 'var(--red)') : 'var(--tx3)';
+  const lo = safeNum(r.week52_low) || 0;
+  const hi = safeNum(r.week52_high) || 0;
+  const price = safeNum(r.current_price) || 0;
+  const fvMid = safeNum(r.fair_value_mid);
+  const fvLo = safeNum(r.fair_value_low);
+  const fvHi = safeNum(r.fair_value_high);
+  const mos = safeNum(r.margin_of_safety_price) || (fvMid ? fvMid * 0.75 : null);
+  const conf = r.confidence || {};
+  const avg = avgConf(conf);
+
+  // Price bar positions (safe)
+  const pricePct = (hi > lo) ? cl(price, lo, hi) : 50;
+  const fvLoPct  = (hi > lo && fvLo) ? cl(fvLo, lo, hi) : null;
+  const fvHiPct  = (hi > lo && fvHi) ? cl(fvHi, lo, hi) : null;
+  const showFvBar = fvLoPct !== null && fvHiPct !== null;
+
+  // Data quality banner
+  let dqCls, dqIcon, dqMsg;
+  if(avg >= 7){ dqCls='dq-ok'; dqIcon='✓'; dqMsg=lang==='en'?'Good data quality — most fields confirmed via web search.':lang==='pt'?'Boa qualidade dos dados — maioria confirmada via pesquisa web.':'Buena calidad de datos — mayoría de campos confirmados vía búsqueda web.'; }
+  else if(avg >= 5){ dqCls='dq-mid'; dqIcon='⚠'; dqMsg=lang==='en'?'Moderate data quality — some fields are estimates. Check the reliability table.':lang==='pt'?'Qualidade moderada — alguns campos são estimativas.':'Calidad moderada — algunos campos son estimaciones. Revisa la tabla de fiabilidad.'; }
+  else { dqCls='dq-low'; dqIcon='⚠'; dqMsg=lang==='en'?'Low data quality — many fields could not be confirmed. Treat all figures with caution.':lang==='pt'?'Qualidade baixa — muitos campos não confirmados.':'Calidad baja — muchos campos no pudieron confirmarse. Usa los datos con precaución.'; }
+
+  const sentLabels = [t.macroLbl, t.fundLbl, t.techLbl, t.genLbl];
+  const sentKeys   = ['macro_sentiment','fundamental_sentiment','quality_sentiment','overall'];
+
+  // Flags — safe
+  const flags = safeArr(r.flags);
+  const flagsHtml = flags.length === 0
+    ? `<div class="no-flags">${t.noFlags}</div>`
+    : flags.map(f => {
+        const ftype = safeStr(f && f.type, 'info');
+        const ftext = safeStr(f && f.text, '');
+        const icon  = ftype==='warn' ? '⚠' : ftype==='ok' ? '✓' : 'ℹ';
+        return `<div class="flag-item flag-${ftype}">${icon} ${ftext}</div>`;
+      }).join('');
+
+  // Confidence fields
+  const confFields = ['price_data','macro','fundamental','quality','dividend_data','flags_data','fair_value'];
+
+  // Convention labels for –15% / –25% cards
+  const convLabel = lang==='en' ? 'CONVENTION –15% (not model estimate)' : lang==='pt' ? 'CONVENÇÃO –15% (não estimativa do modelo)' : 'CONVENCIÓN –15% (no estimación del modelo)';
+  const convLabel2 = lang==='en' ? 'CONVENTION –25% (not model estimate)' : lang==='pt' ? 'CONVENÇÃO –25% (não estimativa do modelo)' : 'CONVENCIÓN –25% (no estimación del modelo)';
+  const convNote = lang==='en'
+    ? 'These two prices are fixed conventions (–15% and –25% off fair value mid), not estimates generated by the AI model. They serve as reference thresholds for entry discipline.'
+    : lang==='pt'
+    ? 'Estes dois preços são convenções fixas (–15% e –25% sobre o valor justo médio), não estimativas geradas pelo modelo de IA. Servem como limites de referência para disciplina de entrada.'
+    : 'Estos dos precios son convenciones fijas (–15% y –25% sobre el valor razonable medio), no estimaciones generadas por el modelo de IA. Sirven como umbrales de referencia para la disciplina de entrada.';
+
+  // Dividend values — safe
+  const dyVal = safeNum(r.dividend_yield_current);
+  const prVal = safeNum(r.payout_ratio_current);
+  const dyConfirmed = !!r.dividend_yield_confirmed;
+  const prConfirmed = !!r.payout_ratio_confirmed;
+  const prColor = prVal === null ? 'var(--tx2)' : prVal > 80 ? 'var(--red)' : prVal > 60 ? 'var(--a2)' : 'var(--a1)';
+
+  // Build HTML
+  const noRtBanner = r._noRealtime ? `<div class="no-rt-banner"><strong>⚠ Sin datos en tiempo real</strong> · Gemini funcionó sin Google Search (bloqueado en tu región en el plan gratuito). El análisis usa el conocimiento de entrenamiento del modelo — los precios y métricas pueden no ser actuales. Para datos en tiempo real, usa Anthropic Claude o activa una VPN.</div>` : '';
+  const html = `
+    ${isDemo ? `<div class="demo-banner">🎭 ${t.demoBanner}</div>` : ''}
+    ${noRtBanner}
+
+    <div class="res-hdr">
+      <div>
+        <div class="big-tkr">${safeStr(r.ticker)}</div>
+        <div class="co-name">${safeStr(r.company_name)}</div>
+        <div class="co-meta">${safeStr(r.sector)} · ${safeStr(r.country)} · ${safeStr(r.exchange)}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:12px">
+        <button class="dl-btn" onclick="window.print()">${t.downloadPdf}</button>
+        <div class="rpt-meta">${t.reportGenerated}<br/><span class="rpt-date">${safeStr(r.date)}</span></div>
+        ${fromCache && !isDemo ? `<span style="font-size:9px;color:var(--a2);letter-spacing:1px">⚡ ${t.cacheNote}</span>` : ''}
+      </div>
+    </div>
+
+    <!-- SENTIMENTS -->
+    <div class="sent-row">
+      ${sentKeys.map((k,i) => `
+        <div class="sent-card">
+          <div class="sent-lbl">${sentLabels[i]}</div>
+          <div class="sent-val ${sentClass(r[k])}">${safeStr(r[k])}</div>
+        </div>
+      `).join('')}
+    </div>
+    <div class="div-line"></div>
+
+    <!-- DATA QUALITY BANNER -->
+    <div class="dq-warn ${dqCls}"><span style="font-size:16px">${dqIcon}</span><span>${dqMsg} <strong>Avg: ${avg.toFixed(1)}/10</strong></span></div>
+
+    <!-- 01 PRICE PANEL -->
+    <div class="panel c3">
+      <div class="ph">
+        <div class="pn">01</div>
+        <div class="pt">${t.priceDataLbl}</div>
+        <div class="ptag">MARKET DATA</div>
+        ${confBadge(safeConf(conf,'price_data'))}
+      </div>
+      <div class="pb">
+        <div class="price-row">
+          <div class="price-blk">
+            <div class="price-lbl">${t.currentPrice}</div>
+            <div class="price-val">${safeNum(r.current_price) !== null ? n(r.current_price) : '—'}<span class="price-cur">${cur}</span></div>
+            ${chgOk ? `<div class="chg-row">
+              <span style="color:${chgCol};font-size:18px">${chg >= 0 ? '▲' : '▼'}</span>
+              <span class="chg-v" style="color:${chgCol}">${Math.abs(chg).toFixed(2)}%</span>
+              <span style="font-size:10px;color:var(--tx3)">${t.vsYest}</span>
+            </div>` : ''}
+            ${r.market_cap ? `<div style="font-size:11px;color:var(--tx3);margin-top:6px">Cap. ${safeStr(r.market_cap)}</div>` : ''}
+            <div class="${r.price_is_realtime ? 'dq-warn dq-ok' : 'delay-warn'}" style="margin-top:10px;font-size:10px">
+              ${r.price_is_realtime ? t.realtimeOk : t.delayWarn}
+            </div>
+            ${r.price_source_note ? `<div class="price-note">${safeStr(r.price_source_note)}</div>` : ''}
+          </div>
+          <div class="w52-blk">
+            <div class="w52-lbl">${t.range52}</div>
+            <div class="w52-ext">
+              <div class="ext-lo"><div class="ext-v">${safeNum(r.week52_low) !== null ? n(r.week52_low) : '—'} ${cur}</div><div class="ext-l">${t.min52}</div></div>
+              <div class="ext-hi"><div class="ext-v">${safeNum(r.week52_high) !== null ? n(r.week52_high) : '—'} ${cur}</div><div class="ext-l">${t.max52}</div></div>
+            </div>
+            <div class="rbar">
+              <div class="rbar-grad"></div>
+              ${showFvBar ? `<div style="position:absolute;top:-3px;height:16px;border-radius:3px;left:${fvLoPct}%;width:${Math.max(fvHiPct-fvLoPct,2)}%;background:rgba(0,212,170,.2);border:1px solid var(--a1);z-index:4"></div>` : ''}
+              <div style="position:absolute;left:${pricePct}%;top:50%;transform:translate(-50%,-50%);z-index:6;width:3px;height:22px;background:var(--tx);border-radius:2px"></div>
+            </div>
+            <div class="rleg">
+              <div class="rleg-i"><div style="width:3px;height:14px;background:var(--tx);border-radius:2px"></div><span class="rleg-t">${t.currentPrice}</span></div>
+              ${showFvBar ? `<div class="rleg-i"><div style="width:12px;height:8px;background:rgba(0,212,170,.2);border:1px solid var(--a1);border-radius:2px"></div><span class="rleg-t">${t.fvLabel}</span></div>` : ''}
+            </div>
+          </div>
+        </div>
+
+        <!-- FAIR VALUE CARDS -->
+        <div class="fv-grid">
+          <!-- Card 1: Fair Value (model estimate) -->
+          <div class="fv-card fv-fair">
+            <div class="fv-badge">${t.fvBadge}</div>
+            <div class="fv-icon">🎯</div>
+            <div class="fv-name">${t.fvLabel}</div>
+            <div class="fv-val">${(fvLo && fvHi) ? `${n(fvLo)} – ${n(fvHi)}` : (fvMid ? n(fvMid) : '—')}</div>
+            <div class="fv-sub">${cur} · ${t.fvSub}</div>
+            <div class="fv-pct">${(fvMid && price) ? pct(fvMid, price) + ' ' + t.vsPrice : '—'}</div>
+          </div>
+          <!-- Card 2: –15% CONVENTION (not model) -->
+          <div class="fv-card fv-disc">
+            <div class="fv-badge" style="background:rgba(255,255,255,.06);color:var(--tx3)">${convLabel}</div>
+            <div class="fv-icon">📉</div>
+            <div class="fv-name">${t.discLabel}</div>
+            <div class="fv-val">${fvMid ? n(fvMid * 0.85) : '—'}</div>
+            <div class="fv-sub">${cur} · ${t.discSub} (–15%)</div>
+            <div class="fv-pct">${(fvMid && price) ? pct(fvMid * 0.85, price) + ' ' + t.vsPrice : '—'}</div>
+          </div>
+          <!-- Card 3: –25% CONVENTION (not model) -->
+          <div class="fv-card fv-margin">
+            <div class="fv-badge" style="background:rgba(255,255,255,.06);color:var(--tx3)">${convLabel2}</div>
+            <div class="fv-icon">🛡</div>
+            <div class="fv-name">${t.marginLabel}</div>
+            <div class="fv-val">${mos ? n(mos) : '—'}</div>
+            <div class="fv-sub">${cur} · ${t.marginSub} (–25%)</div>
+            <div class="fv-pct">${(mos && price) ? pct(mos, price) + ' ' + t.vsPrice : '—'}</div>
+          </div>
+        </div>
+        <!-- Convention disclaimer -->
+        ${fvMid ? `<div class="conv-disclaimer">${convNote}</div>` : ''}
+        ${r.fair_value_rationale ? `<div class="fv-rat"><span style="color:var(--tx2);font-weight:600;letter-spacing:1px">${t.fvRationale}</span>${safeStr(r.fair_value_rationale)}</div>` : ''}
+        <div class="fv-disclaimer">${t.fvDisclaimer}</div>
+
+        ${r.data_sources && safeArr(r.data_sources).length > 0 ? `
+        <div class="src-box">
+          <div class="src-lbl">${t.dataSources}</div>
+          <div class="src-list">${safeArr(r.data_sources).map(s => `<span class="src-tag">${safeStr(s)}</span>`).join('')}</div>
+        </div>` : ''}
+      </div>
+    </div>
+
+    <!-- 02 MACRO -->
+    <div class="panel c1">
+      <div class="ph">
+        <div class="pn">02</div><div class="pt">${t.macroTitle}</div>
+        <div class="ptag">MACRO</div>${confBadge(safeConf(conf,'macro'))}
+      </div>
+      <div class="pb"><div class="atxt">${safeStr(r.macro,'—')}</div></div>
+    </div>
+
+    <!-- 03 FUNDAMENTAL -->
+    <div class="panel c2">
+      <div class="ph">
+        <div class="pn">03</div><div class="pt">${t.fundTitle}</div>
+        <div class="ptag">FUND</div>${confBadge(safeConf(conf,'fundamental'))}
+      </div>
+      <div class="pb">
+        <div class="atxt" style="margin-bottom:24px">${safeStr(r.fundamental,'—')}</div>
+
+        <!-- DIVIDEND METRICS -->
+        <div style="font-size:9px;color:var(--a2);letter-spacing:3px;text-transform:uppercase;margin-bottom:14px">${t.divTitle}</div>
+        <div class="div-metrics">
+          <div class="dm-card">
+            <div class="dm-title">${t.dyLabel}</div>
+            <div class="dm-val" style="color:var(--a1)">${dyVal !== null ? dyVal.toFixed(2) + '%' : '—'}</div>
+            <div class="dm-sub">${dyVal !== null ? (dyConfirmed ? `✓ ${t.confirmed}` : `~ ${t.estimated}`) : t.notAvailable}</div>
+            <div class="dm-conf">${confBadge(safeConf(conf,'dividend_data'))}</div>
+          </div>
+          <div class="dm-card">
+            <div class="dm-title">${t.prLabel}</div>
+            <div class="dm-val" style="color:${prColor}">${prVal !== null ? prVal.toFixed(1) + '%' : '—'}</div>
+            <div class="dm-sub">${prVal !== null ? (prConfirmed ? `✓ ${t.confirmed}` : `~ ${t.estimated}`) : t.notAvailable}</div>
+            <div class="dm-conf">${confBadge(safeConf(conf,'dividend_data'))}</div>
+          </div>
+        </div>
+
+        <!-- FLAGS -->
+        <div class="flags-box">
+          <div class="flags-title">${t.flagsTitle}</div>
+          ${flagsHtml}
+        </div>
+      </div>
+    </div>
+
+    <!-- 04 BUSINESS QUALITY -->
+    <div class="panel c3">
+      <div class="ph">
+        <div class="pn">04</div><div class="pt">${t.qualityTitle}</div>
+        <div class="ptag">QUALITY</div>${confBadge(safeConf(conf,'quality'))}
+      </div>
+      <div class="pb"><div class="atxt">${safeStr(r.quality,'—')}</div></div>
+    </div>
+
+    <!-- 05 CONFIDENCE TABLE -->
+    <div class="panel c4">
+      <div class="ph">
+        <div class="pn">05</div><div class="pt">${t.confTitle}</div>
+        <div class="ptag">CONFIDENCE</div>
+      </div>
+      <div class="pb">
+        <div style="font-size:12px;color:var(--tx3);margin-bottom:16px;line-height:1.6;font-family:'IBM Plex Sans'">${t.confIntro}</div>
+        <table class="ct">
+          <thead><tr><th>${t.cfld}</th><th>${t.cscr}</th><th>${t.cbar}</th><th>${t.cnote}</th></tr></thead>
+          <tbody>
+            ${confFields.map(f => {
+              const s = safeConf(conf, f);
+              const note = safeNote(conf, f);
+              const icon = (t.icons && t.icons[f]) ? t.icons[f] : '';
+              const label = (t.flds && t.flds[f]) ? t.flds[f] : f;
+              return `<tr>
+                <td>${icon} ${label}</td>
+                <td><span class="cs" style="color:${confColor(s)}">${s}</span><span style="font-size:10px;color:var(--tx3)">/10</span></td>
+                <td><div class="cb"><div class="cbf" style="width:${s*10}%;background:${confColor(s)}"></div></div></td>
+                <td style="font-family:'IBM Plex Sans';font-size:11px;color:var(--tx3);max-width:280px">${note || '—'}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div style="font-size:10px;color:var(--tx3);letter-spacing:1px;margin-top:24px;text-align:center;line-height:1.9">
+      AXIOS-IQ · ${t.foot}<br/>${safeStr(r.date)}
+    </div>
+  `;
+
+  document.getElementById('results').innerHTML = html;
+  document.getElementById('results').classList.add('visible');
+  document.getElementById('cache-tag').classList.toggle('visible', fromCache && !isDemo);
+}
+// ══════════════════════════════════════════════════════════
+// ANALYZE — Anthropic + Gemini dual provider
+// ══════════════════════════════════════════════════════════
+async function callAnthropic(apiKey, ticker){
+  const resp = await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{
+      'Content-Type':'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version':'2023-06-01',
+      'anthropic-dangerous-direct-browser-access':'true',
+    },
+    body: JSON.stringify({
+      model:'claude-sonnet-4-6',
+      max_tokens:8000,
+      tool_choice:{type:'any'},
+      tools:[{type:'web_search_20250305',name:'web_search'}],
+      messages:[{role:'user',content:buildPrompt(ticker,lang)}],
+    }),
+  });
+  const data = await resp.json();
+  if(data.error){
+    const msg = data.error.message||JSON.stringify(data.error);
+    if(msg.includes('exceeded')||msg.includes('rate_limit')||msg.includes('overloaded')) throw new Error('RATE_LIMIT');
+    throw new Error(msg);
+  }
+  return (data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('\n');
+}
+
+// geminiGrounding: true = used Google Search (real-time), false = model knowledge only
+let geminiGrounding = true;
+
+async function callGeminiEndpoint(apiKey, ticker, withGrounding){
+  const body = {
+    contents:[{role:'user', parts:[{text: buildPrompt(ticker,lang)}]}],
+    generationConfig:{maxOutputTokens:8000, temperature:0.1},
+  };
+  if(withGrounding) body.tools = [{google_search:{}}];
+  const resp = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+    { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) }
+  );
+  return resp.json();
+}
+
+async function callGemini(apiKey, ticker){
+  // 1st attempt: WITH Google Search grounding (real-time data)
+  let data = await callGeminiEndpoint(apiKey, ticker, true);
+  geminiGrounding = true;
+
+  if(data.error){
+    const code = data.error.code||0;
+    const msg  = (data.error.message||'').toLowerCase();
+    // EEA/region restriction on free-tier grounding → retry WITHOUT grounding
+    const groundingBlocked = (code===400||code===403) &&
+      (msg.includes('location')||msg.includes('region')||msg.includes('user_location')||
+       msg.includes('grounding')||msg.includes('tool')||msg.includes('not supported')||
+       msg.includes('not available'));
+    if(groundingBlocked){
+      // 2nd attempt: WITHOUT grounding (model training knowledge, not real-time)
+      data = await callGeminiEndpoint(apiKey, ticker, false);
+      geminiGrounding = false;
+    }
+    if(data.error){
+      const msg2 = data.error.message||JSON.stringify(data.error);
+      if(msg2.includes('RESOURCE_EXHAUSTED')||msg2.includes('quota')) throw new Error('RATE_LIMIT');
+      if(msg2.includes('API_KEY_INVALID')||msg2.includes('invalid')) throw new Error('INVALID_KEY');
+      throw new Error(msg2);
+    }
+  }
+
+  const parts = (data?.candidates?.[0]?.content?.parts)||[];
+  const text  = parts.filter(p=>p.text).map(p=>p.text).join('\n');
+  if(!text) throw new Error('GEMINI_EMPTY');
+  return text;
+}
+
+async function analyze(){
+  const ticker = document.getElementById('ticker-input').value.trim().toUpperCase();
+  if(!ticker) return;
+  const t = T[lang];
+
+  const apiKey = loadApiKey();
+  if(!apiKey){ showError('gen', t.errNoKey); return; }
+
+  if(CRYPTOS.has(ticker)){ showError('cryp', t.errCrypto); return; }
+
+  // Cache key includes provider so Anthropic and Gemini analyses are stored separately
+  const cacheId = ticker + ':' + aiProvider;
+  const cached = getCache(cacheId, lang);
+  if(cached){
+    currentResult = cached;
+    clearError();
+    document.getElementById('loading').style.display='none';
+    renderResults(cached, true);
+    return;
+  }
+
+  setLoading(true, ticker, t);
+
+  try{
+    let fullText;
+    if(aiProvider === 'gemini'){
+      fullText = await callGemini(apiKey, ticker);
+    } else {
+      fullText = await callAnthropic(apiKey, ticker);
+    }
+
+    const match = fullText.replace(/```json|```/g,'').match(/\{[\s\S]*\}/);
+    if(!match){ showError('inv', t.errInvalid(ticker)); return; }
+
+    let parsed;
+    try{ parsed = JSON.parse(match[0]); }
+    catch(_){ showError('inv', t.errInvalid(ticker)); return; }
+
+    const co=(parsed.company_name||'').toLowerCase();
+    if(!co||co==='unknown'||co.includes('not found')||co.includes('no encontrad')||co.includes('não encontrad')){
+      showError('inv', t.errInvalid(ticker)); return;
+    }
+
+    const result = {
+      ...parsed, ticker,
+      _provider: aiProvider,
+      date: new Date().toLocaleDateString(lang==='en'?'en-GB':lang==='pt'?'pt-PT':'es-ES',{day:'2-digit',month:'long',year:'numeric'}),
+    };
+
+    // Mark if grounding was unavailable (EEA fallback)
+    result._noRealtime = (aiProvider==='gemini' && !geminiGrounding);
+    setCache(cacheId, lang, result);
+    currentResult = result;
+    clearError();
+    renderResults(result, false);
+
+  }catch(e){
+    const m = e.message||'';
+    // Network-level errors
+    const isNetErr = m.includes('Load failed')||m.includes('Failed to fetch')||m.includes('NetworkError')||(e instanceof TypeError && m.length < 40);
+    if(isNetErr){
+      const netMsg = lang==='en'
+        ? '🌐 Network error — could not reach the API. Check your connection and try again.'
+        : lang==='pt'
+        ? '🌐 Erro de rede — não foi possível alcançar a API. Verifique a sua ligação.'
+        : '🌐 Error de red — no se pudo alcanzar la API. Comprueba tu conexión a internet.';
+      showError('gen', netMsg); return;
+    }
+    if(m==='RATE_LIMIT'){
+      showError('rate', t.errRate());
+    } else if(m==='INVALID_KEY'){
+      showError('gen', lang==='en'
+        ? 'Invalid Gemini API key. Please check it at aistudio.google.com and save it again.'
+        : lang==='pt'
+        ? 'Chave Gemini inválida. Verifique em aistudio.google.com e guarde novamente.'
+        : 'Clave Gemini inválida. Compruébala en aistudio.google.com y guárdala de nuevo.');
+    } else if(m==='GEMINI_EMPTY'){
+      showError('inv', t.errInvalid(ticker));
+    } else {
+      showError('gen', t.errGen(ticker, m));
+    }
+  }finally{
+    setLoading(false);
+  }
+}
+
+function setLoading(on, ticker, t){
+  document.getElementById('loading').style.display = on?'block':'none';
+  document.getElementById('results').classList.remove('visible');
+  document.getElementById('cache-tag').classList.remove('visible');
+  if(on){
+    document.getElementById('ld-tkr').textContent = ticker;
+    document.getElementById('ld-txt').textContent = (t||T[lang]).processingData;
+    document.getElementById('go-btn').textContent = (t||T[lang]).analyzing;
+    document.getElementById('go-btn').disabled = true;
+    let pi=0;
+    const phases=(t||T[lang]).phases;
+    document.getElementById('ld-ph').textContent = phases[0];
+    phaseTimer = setInterval(()=>{pi=Math.min(pi+1,phases.length-1);document.getElementById('ld-ph').textContent=phases[pi];},3500);
+  } else {
+    clearInterval(phaseTimer);
+    document.getElementById('go-btn').textContent = T[lang].analyzeBtn;
+    document.getElementById('go-btn').disabled = false;
+    document.getElementById('loading').style.display='none';
+  }
+}
+
+function showError(type, msg){
+  const box=document.getElementById('error-box');
+  box.textContent=msg;
+  box.className=`err visible err-${type}`;
+  setLoading(false);
+}
+function clearError(){
+  const box=document.getElementById('error-box');
+  box.className='err';
+}
+
+// ══════════════════════════════════════════════════════════
+// ACADEMY DATA
+// ══════════════════════════════════════════════════════════
+const ACADEMY = {
+  es: {
+    title: "ACADEMIA FINANCIERA",
+    subtitle: "Aprende a invertir con criterio · De principiante a avanzado",
+    searchPlaceholder: "Buscar concepto... (ej: PER, dividendo, ETF)",
+    levels: [{id:"beg",label:"🟢 Principiante"},{id:"int",label:"🟡 Intermedio"},{id:"adv",label:"🔴 Avanzado"}],
+    categories: ["Todos","Activos","Finanzas Personales","Valoración","Métricas","Estrategias","Riesgo"],
+    readMore: "▸ Leer más",
+    closeBtn: "✕ Cerrar",
+    progressLabel: "PROGRESO",
+    conceptsLabel: (n,t) => `${n} de ${t} conceptos`,
+    concepts: [
+      // ── PRINCIPIANTE ─────────────────────────────────────
+      {id:"accion",icon:"📈",level:"beg",cat:"Activos",title:"Acción",
+       summary:"Una acción es una pequeña parte de la propiedad de una empresa. Al comprar acciones, te conviertes en accionista y participas en sus beneficios.",
+       body:`<p>Una <strong>acción</strong> representa una fracción del capital social de una empresa. Si una empresa vale 1.000.000€ y emite 1.000.000 acciones, cada acción vale 1€. Al comprarla, eres copropietario de esa empresa en proporción a tus acciones.</p><p>Como accionista tienes dos formas de ganar dinero: los <strong>dividendos</strong> (parte del beneficio que la empresa te paga periódicamente) y la <strong>revalorización</strong> del precio de la acción si la empresa crece con el tiempo.</p><div class="example">💡 Si compras 10 acciones de AAPL a 200$ y suben a 250$, has ganado 500$. Si además pagan 1$ de dividendo por acción, recibes 10$ extra.</div><p>El riesgo principal es que el precio puede bajar si la empresa va mal, y en casos extremos puedes perder toda tu inversión.</p>`
+      },
+      {id:"bono",icon:"🏦",level:"beg",cat:"Activos",title:"Bono",
+       summary:"Un bono es un préstamo que haces a una empresa o gobierno. A cambio, te pagan intereses periódicos y te devuelven el dinero al vencimiento.",
+       body:`<p>Un <strong>bono</strong> es un instrumento de deuda. Cuando compras un bono de una empresa, le estás prestando dinero. Ella se compromete a pagarte un <strong>cupón</strong> (interés) periódico y a devolverte el capital al finalizar el plazo.</p><p>Los bonos se consideran más seguros que las acciones porque el pago está contractualmente garantizado. Sin embargo, si la empresa quiebra, el valor del bono puede desplomarse.</p><div class="formula">Rentabilidad bono = Cupón anual / Precio del bono × 100</div><div class="example">💡 Un bono del Estado español a 10 años al 3,5% anual: si inviertes 1.000€, cobras 35€/año durante 10 años y recuperas los 1.000€ al final.</div>`
+      },
+      {id:"etf",icon:"🧺",level:"beg",cat:"Activos",title:"ETF",
+       summary:"Un ETF es una cesta de activos (acciones, bonos...) que cotiza en bolsa como si fuera una acción. Permite diversificar con una sola compra.",
+       body:`<p>Un <strong>ETF (Exchange-Traded Fund)</strong> replica el comportamiento de un índice (como el S&P 500 o el IBEX 35) o de un sector. Al comprarlo, estás invirtiendo en todas las empresas que lo componen a la vez.</p><p>Ventajas clave: <strong>diversificación inmediata</strong>, <strong>bajo coste</strong> (las comisiones son mínimas, entre 0,03% y 0,20% anual) y <strong>liquidez</strong> (puedes comprarlo y venderlo en cualquier momento de mercado).</p><div class="example">💡 Comprando 1 participación del ETF VUSA (Vanguard S&P 500), inviertes simultáneamente en las 500 empresas más grandes de EE.UU.</div><p>Para el inversor a largo plazo, los ETFs de índice son la estrategia más sencilla y estadísticamente eficiente.</p>`
+      },
+            {id:"oro",icon:"🥇",level:"beg",cat:"Activos",title:"Oro",
+       summary:"El oro es el activo refugio por excelencia. Protege contra la inflación, las crisis y la devaluación de divisas. No genera rentas, pero tiene un papel único en la cartera.",
+       body:`<p>El <strong>oro</strong> lleva más de 5.000 años siendo reserva de valor. A diferencia de las acciones o los bonos, no genera dividendos ni intereses, pero tampoco puede quebrar ni devaluarse a cero. Su valor descansa en la escasez física y en la confianza universal.</p><h4 style="color:var(--a2);margin:16px 0 8px;font-family:'IBM Plex Mono'">¿Por qué tenerlo en cartera?</h4><p>El oro tiene una <strong>correlación baja o negativa</strong> con la renta variable: cuando las bolsas caen con fuerza (crisis 2008, COVID 2020), el oro suele subir o mantenerse. Actúa como seguro frente a escenarios extremos: crisis bancarias, hiperinflación, conflictos geopolíticos.</p><div class="example">💡 En 2008, el S&P 500 cayó un 38%. El oro subió un +5,5%. En 2020 (COVID), el S&P cayó un 34% en marzo; el oro alcanzó máximos históricos en agosto. No es un activo de crecimiento, sino de protección.</div><h4 style="color:var(--a1);margin:16px 0 8px;font-family:'IBM Plex Mono'">¿Cómo invertir en oro?</h4><p><strong>ETF de oro físico</strong> (como IGLN o SGLN): la forma más eficiente para el inversor particular. El ETF está respaldado por lingotes reales en bóvedas. <strong>Oro físico</strong> (monedas, lingotes): mayor control pero costes de custodia. <strong>Acciones de mineras</strong>: mayor potencial pero también mayor riesgo operativo.</p><p>Para un inversor largo plazo, una exposición del <strong>5–10%</strong> de la cartera en oro es una cobertura razonable sin sacrificar el potencial de crecimiento del resto.</p>`
+      },
+      {id:"deuda",icon:"🏛",level:"beg",cat:"Activos",title:"Deuda Pública y Corporativa",
+       summary:"Los bonos de deuda pública y corporativa son préstamos que haces a gobiernos o empresas. Ofrecen rentas predecibles y estabilidad, especialmente útiles para horizontes cortos o perfiles conservadores.",
+       body:`<p>La <strong>deuda</strong> es el segundo gran bloque de los mercados financieros, junto a la renta variable. Cuando compras un bono, le prestas dinero al emisor a cambio de pagos periódicos de intereses (el <strong>cupón</strong>) y la devolución del capital al vencimiento.</p><h4 style="color:var(--a2);margin:16px 0 8px;font-family:'IBM Plex Mono'">Deuda Pública</h4><p>Emitida por gobiernos (Tesoro de EE.UU., Bund alemán, Bono español). Se considera la inversión más segura en términos de impago, especialmente si el gobierno emisor tiene moneda propia. Los <strong>Bonos del Tesoro americano</strong> son el activo libre de riesgo de referencia mundial.</p><div class="formula">Rentabilidad bono = Cupón / Precio de mercado × 100</div><div class="example">💡 El Bono español a 10 años ofrece ~3,2% anual (feb 2025). Por cada 10.000€ invertidos, recibes ~320€/año durante 10 años y recuperas los 10.000€ al final.</div><h4 style="color:var(--a3);margin:16px 0 8px;font-family:'IBM Plex Mono'">Deuda Corporativa</h4><p>Emitida por empresas. Paga más que la deuda pública porque tiene más riesgo de impago. Se clasifica en <strong>Investment Grade</strong> (empresas solventes, rating BBB- o superior) y <strong>High Yield</strong> o "bonos basura" (mayor rentabilidad, mayor riesgo).</p><p><strong>Relación inversa precio-tipo:</strong> cuando los tipos de interés suben, el precio de los bonos existentes baja. Y viceversa. Es el concepto más importante para entender los bonos.</p><p>Para el inversor largo plazo, la deuda funciona como <strong>amortiguador de volatilidad</strong>: cuando las acciones caen, los bonos de calidad suelen aguantar o subir, estabilizando la cartera.</p>`
+      },
+      {id:"diversificacion",icon:"🌍",level:"beg",cat:"Riesgo",title:"Diversificación",
+       summary:"No pongas todos los huevos en la misma cesta. Diversificar significa repartir la inversión entre distintos activos para reducir el riesgo.",
+       body:`<p>La <strong>diversificación</strong> es el principio de no concentrar todo el capital en un solo activo, sector o país. Si una empresa quiebra, solo pierdes la parte que tenías en ella.</p><p>Se puede diversificar por <strong>tipo de activo</strong> (acciones, bonos, inmuebles), por <strong>geografía</strong> (EE.UU., Europa, Emergentes) y por <strong>sector</strong> (tecnología, salud, consumo, energía).</p><div class="example">💡 Una cartera con 60% acciones globales, 30% bonos y 10% REITs está más diversificada que una cartera 100% en acciones tecnológicas americanas.</div><p>Importante: diversificar no elimina el riesgo de mercado general (una crisis global afecta a casi todo), pero sí reduce el riesgo específico de cada empresa o sector.</p>`
+      },
+            {id:"que_es_riesgo",icon:"⚡",level:"beg",cat:"Riesgo",title:"Qué es el Riesgo",
+       summary:"En inversión, el riesgo no significa solo perder dinero. Significa incertidumbre sobre el resultado futuro. Entender los distintos tipos de riesgo es el primer paso para gestionarlos.",
+       body:`<p>El <strong>riesgo financiero</strong> es la posibilidad de que el resultado real de una inversión difiera del resultado esperado. No siempre implica pérdida: también puede significar obtener menos de lo previsto, o más. Pero en la práctica, nos preocupa el lado negativo.</p><h4 style="color:var(--a2);margin:16px 0 8px;font-family:'IBM Plex Mono'">Los principales tipos de riesgo</h4><p><strong>Riesgo de mercado:</strong> el precio de tu inversión fluctúa por factores macroeconómicos globales. Afecta a casi todos los activos simultáneamente. No se puede eliminar diversificando, solo aceptar.</p><p><strong>Riesgo específico (o idiosincrático):</strong> riesgo propio de una empresa concreta (escándalo contable, cambio de CEO, pérdida de contratos). Este sí se reduce diversificando en muchas empresas.</p><p><strong>Riesgo de liquidez:</strong> no poder vender tu activo cuando quieres sin asumir una pérdida significativa. Un piso en un mercado ilíquido tiene mucho más riesgo de liquidez que una acción del IBEX.</p><p><strong>Riesgo divisa:</strong> si inviertes en activos denominados en otra moneda (ej. acciones americanas en dólares), las fluctuaciones del tipo de cambio afectan tu rentabilidad real en euros.</p><p><strong>Riesgo de inflación:</strong> que tu inversión crezca menos que la inflación, perdiendo poder adquisitivo real aunque en números absolutos ganes dinero.</p><div class="example">💡 Una cuenta corriente tiene riesgo de mercado casi nulo, pero riesgo de inflación muy alto. Una acción individual tiene riesgo de mercado Y riesgo específico. Un ETF global elimina el riesgo específico, pero mantiene el de mercado.</div><p>El objetivo del inversor inteligente no es <strong>eliminar</strong> el riesgo (imposible) sino <strong>gestionarlo</strong>: asumir el riesgo que te corresponde por tu horizonte temporal, aceptar el riesgo de mercado inevitable y eliminar el riesgo específico innecesario con diversificación.</p>`
+      },
+      {id:"volatilidad_amiga",icon:"📉",level:"beg",cat:"Riesgo",title:"Por qué la volatilidad es nuestra amiga",
+       summary:"La volatilidad asusta. Ver caer una cartera un 30% es psicológicamente devastador. Pero para el inversor a largo plazo, la volatilidad no es el enemigo: es la fuente de oportunidad y la razón por la que las acciones rentan más que los bonos.",
+       body:`<p>La <strong>volatilidad</strong> mide cuánto fluctúa el precio de un activo. Alta volatilidad = grandes oscilaciones en poco tiempo. Baja volatilidad = precio estable. La mayoría de los inversores noveles huye de ella. El inversor experimentado la entiende como una aliada.</p><h4 style="color:var(--a2);margin:16px 0 8px;font-family:'IBM Plex Mono'">¿Por qué las acciones rentan más que los bonos?</h4><p>Precisamente porque son más volátiles. Si las acciones tuvieran la misma estabilidad que los bonos del Estado, nadie asumiría el riesgo adicional sin una compensación extra. La <strong>prima de riesgo de la renta variable</strong> existe porque los inversores exigen mayor rentabilidad a cambio de soportar las caídas. Sin volatilidad, no hay prima. Sin prima, no hay rentabilidad superior a largo plazo.</p><div class="example">💡 El S&P 500 ha caído más de un 20% en 12 ocasiones desde 1950. En todas recuperó máximos. El inversor que aguantó sin vender obtuvo rentabilidades del 10% anual. El que vendió en pánico cristalizó la pérdida y perdió la recuperación.</div><h4 style="color:var(--a1);margin:16px 0 8px;font-family:'IBM Plex Mono'">La volatilidad como oportunidad de compra</h4><p>Para el inversor con aportaciones periódicas, las caídas son rebajas. Si inviertes 500€ cada mes independientemente del mercado (<strong>Dollar Cost Averaging</strong>), en los meses de caída compras más participaciones al mismo precio. Cuando el mercado recupera, tienes más unidades valorizándose.</p><p>La volatilidad solo es enemiga si <strong>necesitas el dinero en el corto plazo</strong>. Por eso el horizonte temporal lo es todo: un inversor con 20 años por delante debería ver una caída del 40% como una oportunidad. Uno que jubila en 2 años, como un riesgo real.</p><div class="example">💡 Warren Buffett: "El mercado de valores es un mecanismo para transferir riqueza de los impacientes a los pacientes." La volatilidad es el peaje que cobran los mercados a los impacientes.</div>`
+      },
+      {id:"por_que_invertir",icon:"🌱",level:"beg",cat:"Finanzas Personales",title:"Por qué necesitamos invertir",
+       summary:"No invertir no es una opción neutral: es perder dinero lentamente. La inflación erosiona el poder adquisitivo de tu dinero cada año. Invertir es la herramienta para protegerlo y hacerlo crecer.",
+       body:`<p>Muchas personas creen que guardar dinero en el banco es la opción segura. La realidad matemática es la contraria: <strong>no invertir es perder poder adquisitivo de forma silenciosa y constante.</strong></p><h4 style="color:var(--a2);margin:16px 0 8px;font-family:'IBM Plex Mono'">🔥 El problema: la inflación</h4><p>La inflación es el aumento generalizado de precios. Si la inflación es del 3% anual y tu cuenta bancaria da un 0,5% de interés, pierdes un 2,5% de poder adquisitivo <em>cada año</em>.</p><div class="formula">Pérdida de poder adquisitivo = Inflación − Rentabilidad del ahorro</div><div class="example">💡 Si tienes 10.000€ en el banco al 0,5% con una inflación del 3%, en 10 años tus 10.000€ solo podrán comprar lo equivalente a ~7.700€ de hoy. Has perdido 2.300€ sin hacer nada.</div><h4 style="color:var(--a1);margin:16px 0 8px;font-family:'IBM Plex Mono'">📈 La solución: invertir el excedente</h4><p>Invertir no significa especular ni asumir riesgos descontrolados. Significa poner tu dinero a trabajar en activos que históricamente crecen por encima de la inflación: acciones, bonos, inmuebles, o fondos indexados.</p><p>El índice S&P 500 (las 500 mayores empresas de EE.UU.) ha ofrecido una rentabilidad media del <strong>~10% anual</strong> en los últimos 100 años (~7% descontando inflación). Eso convierte 10.000€ en más de 67.000€ en 20 años.</p><div class="example">💡 No necesitas ser rico para empezar. Invertir 100€/mes desde los 25 años, con una rentabilidad media del 7%, te da ~240.000€ a los 65. Empezar a los 45 con los mismos 100€/mes: solo ~52.000€. El tiempo es tu mayor activo.</div><h4 style="color:var(--a3);margin:16px 0 8px;font-family:'IBM Plex Mono'">⚖️ El equilibrio correcto</h4><p>Invertir no significa poner todo en bolsa. El orden correcto es: <strong>1)</strong> Fondo de emergencia (3-6 meses de gastos). <strong>2)</strong> Cancelar deudas de alto interés. <strong>3)</strong> Invertir el excedente de forma diversificada y acorde a tu horizonte temporal.</p><p>La pregunta no es <em>"¿debo invertir?"</em> sino <em>"¿en qué debo invertir y con qué horizonte?"</em>. La respuesta depende de tu edad, tolerancia al riesgo y objetivos. Pero no actuar no es una opción financieramente neutra: es elegir perder.</p>`
+      },
+      {id:"interes_compuesto",icon:"📊",level:"beg",cat:"Finanzas Personales",title:"Interés Compuesto",
+       summary:"El interés compuesto es ganar intereses sobre los intereses anteriores. Es el principio matemático más poderoso para construir riqueza a largo plazo.",
+       body:`<p>El <strong>interés compuesto</strong> ocurre cuando los rendimientos de tu inversión se reinvierten y generan a su vez nuevos rendimientos. Es el efecto bola de nieve.</p><div class="formula">Capital final = Capital inicial × (1 + r)^n<br/>donde r = rentabilidad anual, n = años</div><div class="example">💡 Inviertes 10.000€ al 8% anual. Después de 10 años: 21.589€. Después de 30 años: 100.627€. Los últimos 10 años generan más que los primeros 20.</div><p>La clave es el <strong>tiempo</strong>. Empezar a los 25 años con 200€/mes es mucho más poderoso que empezar a los 40 con 500€/mes. El tiempo es el activo más valioso del inversor.</p>`
+      },
+      {id:"fondos_emergencia",icon:"🛡",level:"beg",cat:"Finanzas Personales",title:"Fondo de Emergencia",
+       summary:"Un fondo de emergencia es dinero guardado en una cuenta líquida para cubrir imprevistos. Es la base de cualquier plan financiero.",
+       body:`<p>Un <strong>fondo de emergencia</strong> es un colchón de liquidez que cubre entre 3 y 6 meses de tus gastos fijos. Su función es protegerte ante imprevistos (paro, avería, enfermedad) sin tener que vender inversiones en mal momento.</p><p>Debe estar en un lugar <strong>accesible inmediatamente</strong> (cuenta corriente o cuenta de ahorro de alta liquidez) y no invertido en bolsa, ya que su función no es crecer sino estar disponible.</p><div class="example">💡 Si tus gastos mensuales son 2.000€, tu fondo debería tener entre 6.000€ y 12.000€ guardados antes de empezar a invertir agresivamente.</div><p>Sin fondo de emergencia, cualquier imprevisto puede obligarte a vender tus inversiones en el peor momento, cristalizando pérdidas.</p>`
+      },
+      {id:"dividend_yield",icon:"💸",level:"beg",cat:"Métricas",title:"Dividend Yield",
+       summary:"El dividend yield indica qué porcentaje de tu inversión recuperas cada año en forma de dividendos. Es la rentabilidad visible del accionista.",
+       body:`<p>El <strong>Dividend Yield</strong> (rentabilidad por dividendo) mide el dividendo anual que paga una empresa en relación a su precio en bolsa.</p><div class="formula">Dividend Yield = (Dividendo anual por acción / Precio de la acción) × 100</div><div class="example">💡 Si SAN cotiza a 5€ y paga 0,21€ de dividendo anual, su yield es: 0,21/5 × 100 = 4,2%. Por cada 1.000€ invertidos, recibes 42€ al año.</div><p>Un yield muy alto puede ser una trampa: si el precio de la acción cae mucho, el yield sube artificialmente pero la empresa puede estar en dificultades. Siempre analiza si el dividendo es sostenible mirando el <strong>Payout Ratio</strong>.</p>`
+      },
+
+      // ── INTERMEDIO ───────────────────────────────────────
+      {id:"per",icon:"🔢",level:"int",cat:"Valoración",title:"PER (Price-to-Earnings Ratio)",
+       summary:"El PER mide cuántos años de beneficios estás pagando por una acción. Es el ratio de valoración más utilizado en el mercado.",
+       body:`<p>El <strong>PER (Price-to-Earnings Ratio)</strong>, o P/E en inglés, es el ratio de valoración más conocido. Indica cuántas veces estás pagando los beneficios anuales de la empresa.</p><div class="formula">PER = Precio de la acción / Beneficio por acción (BPA)</div><div class="example">💡 Si AAPL cotiza a 220$ y su BPA es de 7$, el PER es 220/7 = 31,4x. Estás pagando 31 años de beneficios actuales.</div><p>Un PER <strong>bajo</strong> (< 15x) puede indicar que la acción está barata, pero también puede reflejar problemas estructurales. Un PER <strong>alto</strong> (> 30x) implica que el mercado espera fuerte crecimiento futuro.</p><p>Siempre compara el PER con el <strong>histórico de la propia empresa</strong> y con el <strong>sector</strong>. Un PER de 20x es caro para un banco pero barato para una empresa tecnológica de alto crecimiento.</p>`
+      },
+      {id:"payout_ratio",icon:"📤",level:"int",cat:"Métricas",title:"Payout Ratio",
+       summary:"El payout ratio indica qué porcentaje de sus beneficios distribuye una empresa como dividendo. Determina si el dividendo es sostenible.",
+       body:`<p>El <strong>Payout Ratio</strong> es el porcentaje del beneficio neto que una empresa distribuye como dividendos. Es el indicador clave para evaluar la sostenibilidad del dividendo.</p><div class="formula">Payout Ratio = (Dividendo por acción / BPA) × 100</div><p>Un payout del <strong>40-60%</strong> suele ser saludable: la empresa reparte parte del beneficio y retiene el resto para crecer. Por encima del <strong>80%</strong> empieza a ser arriesgado, y por encima del <strong>100%</strong> la empresa está pagando más de lo que gana (insostenible a medio plazo).</p><div class="example">💡 Si SAN tiene BPA de 0,78€ y paga 0,40€ de dividendo, el payout es 51%. Retiene el 49% para reforzar balance y crecer.</div>`
+      },
+      {id:"ev_ebitda",icon:"⚖️",level:"int",cat:"Valoración",title:"EV/EBITDA",
+       summary:"El EV/EBITDA es un ratio de valoración más completo que el PER porque tiene en cuenta la deuda. Muy usado en fusiones y adquisiciones.",
+       body:`<p>El <strong>EV/EBITDA</strong> relaciona el Valor de Empresa (Enterprise Value = capitalización + deuda neta) con el EBITDA (beneficio antes de intereses, impuestos, depreciación y amortización).</p><div class="formula">EV/EBITDA = (Capitalización bursátil + Deuda neta) / EBITDA</div><p>Ventaja sobre el PER: al incluir la deuda, permite comparar empresas con distintos niveles de apalancamiento de forma más justa. Una empresa muy endeudada puede tener un PER bajo pero un EV/EBITDA alto.</p><div class="example">💡 Medianas por sector: Tecnología ~20-30x, Utilities ~8-12x, Bancos no aplica (usan otros ratios), Consumo ~12-18x.</div>`
+      },
+      {id:"moat",icon:"🏰",level:"int",cat:"Estrategias",title:"Foso Económico (Moat)",
+       summary:"El moat o foso económico es la ventaja competitiva duradera que protege a una empresa de sus competidores, como los fosos medievales protegían los castillos.",
+       body:`<p>El concepto de <strong>moat</strong> (foso) fue popularizado por Warren Buffett. Una empresa con moat puede mantener sus márgenes y cuota de mercado durante años sin que los competidores puedan arrebatársela fácilmente.</p><p>Tipos principales de moat: <strong>Marca</strong> (Coca-Cola, Louis Vuitton), <strong>Costes de cambio</strong> (Microsoft Office, Salesforce), <strong>Efecto red</strong> (Visa, Facebook), <strong>Ventaja de costes</strong> (Amazon, Costco), <strong>Activos intangibles</strong> (patentes, licencias).</p><div class="example">💡 CUDA de NVIDIA: 4 millones de desarrolladores escriben código para CUDA. Cambiar a AMD requeriría reescribir años de trabajo. Eso es un moat potente.</div><p>Para el inversor a largo plazo, identificar empresas con moat amplio y duradero es más importante que el precio de entrada.</p>`
+      },
+      {id:"value_investing",icon:"🔍",level:"int",cat:"Estrategias",title:"Value Investing",
+       summary:"El value investing consiste en comprar empresas cuyo precio en bolsa está por debajo de su valor intrínseco real. La estrategia de Buffett y Graham.",
+       body:`<p>El <strong>value investing</strong> nació con Benjamin Graham (mentor de Buffett) y parte de una idea simple: el mercado a corto plazo es una máquina de votación (donde manda el sentimiento), pero a largo plazo es una báscula (donde manda el valor real).</p><p>El inversor value busca empresas con <strong>descuento respecto a su valor intrínseco</strong>, generalmente medido por DCF (flujos de caja descontados), P/BV, o comparación con empresas similares.</p><div class="example">💡 Si calculas que una empresa vale 100€ por acción y cotiza a 65€, tienes un margen de seguridad del 35%. Si tu análisis es correcto, el mercado acabará reconociendo ese valor.</div><p>El riesgo: la empresa puede estar barata por una razón válida (deterioro estructural del negocio). Diferenciar una trampa de valor de una oportunidad real requiere análisis profundo.</p>`
+      },
+      {id:"reit",icon:"🏢",level:"int",cat:"Activos",title:"REIT",
+       summary:"Un REIT es una empresa que invierte en inmuebles y cotiza en bolsa. Permite invertir en el sector inmobiliario con la liquidez de una acción.",
+       body:`<p>Un <strong>REIT (Real Estate Investment Trust)</strong> es un vehículo de inversión que posee y gestiona inmuebles generadores de rentas (oficinas, centros comerciales, viviendas, hospitales, centros logísticos). Están obligados por ley a distribuir al menos el 90% de sus beneficios como dividendos.</p><p>Ventajas: <strong>acceso al inmobiliario</strong> con cualquier cantidad, <strong>alta rentabilidad por dividendo</strong> (generalmente 3-7%), y <strong>liquidez</strong> (se compran y venden como acciones). Es la forma más sencilla de añadir exposición inmobiliaria a una cartera.</p><div class="example">💡 REITs conocidos: Realty Income (O) en EE.UU. con más de 25 años aumentando dividendo; Merlin Properties en España; Vonovia en Alemania.</div>`
+      },
+      {id:"roe_roic",icon:"📐",level:"int",cat:"Métricas",title:"ROE y ROIC",
+       summary:"ROE y ROIC miden la rentabilidad que genera una empresa con el capital de sus accionistas. Son los mejores indicadores de calidad del negocio.",
+       body:`<p>El <strong>ROE (Return on Equity)</strong> mide el beneficio neto en relación al patrimonio neto de los accionistas.</p><div class="formula">ROE = Beneficio Neto / Patrimonio Neto × 100</div><p>El <strong>ROIC (Return on Invested Capital)</strong> es más completo: mide el rendimiento sobre todo el capital invertido (propio + deuda). Es el mejor indicador de la calidad real del negocio.</p><div class="formula">ROIC = NOPAT / Capital Invertido × 100</div><div class="example">💡 Un ROIC sostenido por encima del 15% durante 10 años es señal de un negocio de alta calidad con ventaja competitiva real.</div><p>Trampa del ROE: una empresa muy endeudada puede tener ROE altísimo artificialmente. Por eso el ROIC es más fiable.</p>`
+      },
+
+      // ── AVANZADO ─────────────────────────────────────────
+      {id:"dcf",icon:"🧮",level:"adv",cat:"Valoración",title:"DCF (Descuento de Flujos de Caja)",
+       summary:"El DCF es el método de valoración fundamental por excelencia. Calcula el valor presente de todos los flujos de caja futuros que generará la empresa.",
+       body:`<p>El <strong>DCF (Discounted Cash Flow)</strong> es el método de valoración más riguroso. Parte de una premisa: una empresa vale hoy la suma de todos los flujos de caja que generará en el futuro, descontados a valor presente.</p><div class="formula">Valor = FCF₁/(1+r)¹ + FCF₂/(1+r)² + ... + Valor Terminal/(1+r)^n</div><p>Las variables clave son: <strong>FCF proyectado</strong> (cuánto generará la empresa), <strong>tasa de descuento</strong> (WACC, coste del capital) y <strong>tasa de crecimiento terminal</strong> (a qué ritmo crecerá para siempre).</p><div class="example">💡 El problema del DCF es su sensibilidad: cambiar el WACC del 8% al 9% puede reducir la valoración un 20-30%. Por eso los inversores value siempre piden margen de seguridad.</div><p>El DCF no da respuestas, da un rango de posibilidades. La honestidad intelectual es clave: los inputs son estimaciones, no hechos.</p>`
+      },
+      {id:"wacc",icon:"💹",level:"adv",cat:"Valoración",title:"WACC",
+       summary:"El WACC es el coste medio ponderado del capital. Es la tasa de descuento usada en los DCF y representa el rendimiento mínimo exigido a la inversión.",
+       body:`<p>El <strong>WACC (Weighted Average Cost of Capital)</strong> es el coste de financiarse para una empresa, ponderando el coste de la deuda y el de los recursos propios según su peso en la estructura de capital.</p><div class="formula">WACC = (E/V × Re) + (D/V × Rd × (1-T))<br/>E=equity, D=deuda, V=E+D, Re=coste equity, Rd=coste deuda, T=impuestos</div><p>El coste del equity (Re) se calcula habitualmente con el <strong>CAPM</strong>: Re = Rf + β × (Rm - Rf), donde Rf es la tasa libre de riesgo (bono soberano), β la sensibilidad al mercado y Rm la rentabilidad esperada del mercado.</p><div class="example">💡 Con tipos altos (Rf=4%), empresas de crecimiento con WACC del 10%+ ven sus valoraciones DCF comprimirse significativamente. Es una de las razones por las que subidas de tipos impactan más a tecnología que a sectores defensivos.</div>`
+      },
+      {id:"beta",icon:"🔄",level:"adv",cat:"Riesgo",title:"Beta",
+       summary:"La Beta mide la sensibilidad de una acción a los movimientos del mercado. Una beta >1 amplifica tanto las subidas como las bajadas.",
+       body:`<p>La <strong>beta</strong> mide la volatilidad relativa de una acción respecto al mercado (normalmente el S&P 500). Es la medida estándar del riesgo sistemático.</p><p><strong>β = 1</strong>: la acción se mueve igual que el mercado.<br/><strong>β &gt; 1</strong>: amplifica los movimientos (más riesgo, más potencial).<br/><strong>β &lt; 1</strong>: amortigua los movimientos (más defensiva).<br/><strong>β negativa</strong>: se mueve a la inversa (muy raro, típico del oro).</p><div class="example">💡 NVDA tiene beta ~1.7: si el mercado sube 10%, NVDA tiende a subir ~17%. Si el mercado baja 20%, NVDA tiende a caer ~34%. Para un inversor a largo plazo, la beta importa menos que la calidad del negocio subyacente.</div>`
+      },
+      {id:"fcf",icon:"💰",level:"adv",cat:"Métricas",title:"Free Cash Flow (FCF)",
+       summary:"El FCF o flujo de caja libre es el dinero real que genera una empresa tras pagar sus inversiones. Es la métrica más difícil de manipular contablemente.",
+       body:`<p>El <strong>Free Cash Flow (FCF)</strong> es el efectivo que queda disponible para los accionistas después de que la empresa ha pagado sus gastos operativos y sus inversiones en activos (CAPEX).</p><div class="formula">FCF = Flujo de caja operativo − CAPEX (inversiones)</div><p>A diferencia del beneficio neto, el FCF es muy difícil de manipular contablemente. Una empresa puede mostrar beneficios contables con trucos de amortización, pero el FCF refleja el dinero real que entra en caja.</p><div class="example">💡 Apple generó ~110.000M$ de FCF en 2024. Ese dinero puede ir a dividendos, recompras de acciones, adquisiciones o quedarse en caja. El FCF por acción es la base de una valoración DCF rigurosa.</div><p>El ratio <strong>P/FCF</strong> (precio / FCF por acción) complementa al PER eliminando distorsiones contables.</p>`
+      },
+      {id:"cobertura_divisa",icon:"🌐",level:"adv",cat:"Riesgo",title:"Riesgo Divisa y Cobertura",
+       summary:"Cuando inviertes en activos extranjeros, asumes riesgo de divisa. Un ETF en USD puede subir un 10% pero si el EUR se aprecia un 10%, tu ganancia es cero.",
+       body:`<p>El <strong>riesgo divisa</strong> aparece cuando inviertes en activos denominados en una moneda distinta a la tuya. Si eres inversor europeo y compras acciones americanas en USD, el rendimiento en EUR depende tanto del comportamiento de la acción como del tipo de cambio EUR/USD.</p><div class="example">💡 En 2022, el S&P 500 cayó ~18% en USD. Pero el EUR se depreció ~15% vs USD ese año. Un inversor europeo sin cobertura solo perdió ~3% en EUR. La divisa le salvó.</div><p>Para gestionar este riesgo existen ETFs con <strong>cobertura de divisa (hedged)</strong> que neutralizan el efecto del tipo de cambio. La cobertura tiene coste (normalmente 0,5-2% anual dependiendo del diferencial de tipos). Para inversiones a muy largo plazo, la mayoría de académicos recomienda no cubrir, ya que las divisas tienden a revertir a la media.</p>`
+      },
+      {id:"asset_allocation",icon:"🎯",level:"adv",cat:"Estrategias",title:"Asset Allocation",
+       summary:"El asset allocation es la distribución estratégica del capital entre distintas clases de activos. Es la decisión de inversión que más impacta en el rendimiento a largo plazo.",
+       body:`<p>El <strong>asset allocation</strong> (asignación de activos) determina qué porcentaje de tu cartera va a acciones, bonos, inmuebles, materias primas y liquidez. Estudios históricos sugieren que el ~90% de la variabilidad del rendimiento a largo plazo se explica por el asset allocation, no por la selección de valores.</p><p>Modelos clásicos: <strong>60/40</strong> (60% acciones, 40% bonos, cartera tradicional equilibrada), <strong>All Weather</strong> de Ray Dalio (30% acciones, 40% bonos LP, 15% bonos CP, 7.5% oro, 7.5% materias primas), <strong>Cartera permanente</strong> de Harry Browne (25% en cada uno de: acciones, bonos LP, oro, liquidez).</p><div class="example">💡 No existe el asset allocation perfecto. La clave es elegir uno que puedas mantener durante crisis sin salir en pánico. La cartera que toleras psicológicamente supera siempre a la óptima en papel que abandonas cuando cae un 40%.</div>`
+      },
+      {id:"finanzas_personales_pilares",icon:"🏗",level:"beg",cat:"Finanzas Personales",title:"Los 4 Pilares del Dinero",
+       summary:"Antes de invertir, hay que ordenar las finanzas personales. Los 4 pilares son: controlar gastos, eliminar deuda mala, crear fondo de emergencia e invertir el excedente.",
+       body:`<p>Antes de invertir un solo euro en bolsa, es fundamental tener ordenada la base financiera personal. Los <strong>4 pilares</strong> son:</p><p><strong>1. Flujo de caja positivo:</strong> ingresas más de lo que gastas. Sin esto, no hay nada que invertir. El presupuesto personal es la herramienta básica.</p><p><strong>2. Eliminar deuda mala:</strong> las deudas con interés alto (tarjetas de crédito al 20%+, préstamos al consumo) deben eliminarse antes de invertir. No tiene sentido ganar un 8% en bolsa pagando un 20% en crédito.</p><p><strong>3. Fondo de emergencia:</strong> entre 3 y 6 meses de gastos en cuenta líquida. Protección ante imprevistos.</p><p><strong>4. Invertir el excedente:</strong> solo cuando los tres pilares anteriores están sólidos, el dinero que sobra cada mes se invierte con horizonte largo plazo.</p><div class="example">💡 La deuda buena (hipoteca a bajo interés, estudiante) puede coexistir con la inversión si el tipo de la deuda es inferior a la rentabilidad esperada de la inversión.</div>`
+      },
+      {id:"impuestos_inversion",icon:"📋",level:"int",cat:"Finanzas Personales",title:"Impuestos en la Inversión",
+       summary:"En España y Portugal, las ganancias de inversión tributan en la base del ahorro. Conocer cómo funciona te permite tomar mejores decisiones.",
+       body:`<p>En <strong>España</strong>, las rentas del ahorro (dividendos, plusvalías, intereses) tributan en la base imponible del ahorro con estos tramos en 2024: hasta 6.000€ → 19%, de 6.000 a 50.000€ → 21%, de 50.000 a 200.000€ → 23%, más de 200.000€ → 27%.</p><p>Conceptos clave: <strong>plusvalía</strong> (beneficio por venta de acciones), <strong>minusvalía</strong> (pérdida que puede compensarse con otras ganancias durante 4 años), <strong>retención en dividendos</strong> (19% retenido en origen, recuperable en la declaración).</p><div class="example">💡 Estrategia de optimización: si tienes plusvalías grandes, vende activos con pérdidas antes de fin de año para compensarlas y reducir la factura fiscal. Se llama "cosecha de pérdidas" (tax loss harvesting).</div><p>En <strong>Portugal</strong>, las plusvalías tributan al 28% (tasa autónoma) o pueden integrarse en el IRS general si resulta más beneficioso.</p>`
+      },
+    ]
+  },
+  pt: {
+    title: "ACADEMIA FINANCEIRA",
+    subtitle: "Aprenda a investir com critério · De iniciante a avançado",
+    searchPlaceholder: "Pesquisar conceito... (ex: PER, dividendo, ETF)",
+    levels: [{id:"beg",label:"🟢 Iniciante"},{id:"int",label:"🟡 Intermédio"},{id:"adv",label:"🔴 Avançado"}],
+    categories: ["Todos","Ativos","Finanças Pessoais","Valorização","Métricas","Estratégias","Risco"],
+    readMore: "▸ Ler mais",
+    closeBtn: "✕ Fechar",
+    progressLabel: "PROGRESSO",
+    conceptsLabel: (n,t) => `${n} de ${t} conceitos`,
+    concepts: [
+      {id:"acao",icon:"📈",level:"beg",cat:"Ativos",title:"Ação",
+       summary:"Uma ação é uma pequena fração da propriedade de uma empresa. Ao comprar ações, torna-se acionista e participa nos seus lucros.",
+       body:`<p>Uma <strong>ação</strong> representa uma fração do capital social de uma empresa. Ao comprá-la, é coproprietário dessa empresa na proporção das suas ações.</p><p>Como acionista tem duas formas de ganhar: os <strong>dividendos</strong> (parte do lucro que a empresa lhe paga periodicamente) e a <strong>valorização</strong> do preço da ação se a empresa crescer ao longo do tempo.</p><div class="example">💡 Se comprar 10 ações da AAPL a 200$ e subirem para 250$, ganhou 500$. Se pagarem 1$ de dividendo por ação, recebe mais 10$.</div>`
+      },
+      {id:"etf_pt",icon:"🧺",level:"beg",cat:"Ativos",title:"ETF",
+       summary:"Um ETF é um cesto de ativos que cotiza em bolsa como uma ação. Permite diversificar com uma só compra a custo muito baixo.",
+       body:`<p>Um <strong>ETF (Exchange-Traded Fund)</strong> replica o comportamento de um índice (como o S&P 500 ou o PSI 20). Ao comprá-lo, está a investir em todas as empresas que o compõem simultaneamente.</p><p>Vantagens: <strong>diversificação imediata</strong>, <strong>baixo custo</strong> (comissões entre 0,03% e 0,20% anual) e <strong>liquidez</strong>.</p><div class="example">💡 Com 1 participação do ETF VUSA investe nas 500 maiores empresas dos EUA de uma só vez.</div>`
+      },
+            {id:"ouro_pt",icon:"🥇",level:"beg",cat:"Ativos",title:"Ouro",
+       summary:"O ouro é o ativo refúgio por excelência. Protege contra a inflação, as crises e a desvalorização de moedas. Não gera rendimentos, mas tem um papel único na carteira.",
+       body:`<p>O <strong>ouro</strong> é reserva de valor há mais de 5.000 anos. Ao contrário de ações ou obrigações, não paga dividendos nem juros, mas também não pode falir nem desvalorizar para zero. O seu valor assenta na escassez física e na confiança universal.</p><h4 style="color:var(--a2);margin:16px 0 8px;font-family:'IBM Plex Mono'">Porquê tê-lo na carteira?</h4><p>O ouro tem uma <strong>correlação baixa ou negativa</strong> com a renda variável: quando as bolsas caem com força (crise 2008, COVID 2020), o ouro tende a subir ou manter-se. Funciona como seguro perante cenários extremos: crises bancárias, hiperinflação, conflitos geopolíticos.</p><div class="example">💡 Em 2008, o S&P 500 caiu 38%. O ouro subiu +5,5%. Em março de 2020 o S&P caiu 34%; o ouro atingiu máximos históricos em agosto. Não é um ativo de crescimento, é de proteção.</div><h4 style="color:var(--a1);margin:16px 0 8px;font-family:'IBM Plex Mono'">Como investir em ouro?</h4><p><strong>ETF de ouro físico</strong> (como IGLN ou SGLN): a forma mais eficiente para o investidor particular. O ETF é respaldado por lingotes reais em cofres. <strong>Ouro físico</strong> (moedas, lingotes): maior controlo mas custos de custódia. <strong>Ações de mineradoras</strong>: maior potencial mas também maior risco operacional.</p><p>Para um investidor de longo prazo, uma exposição de <strong>5–10%</strong> da carteira em ouro é uma cobertura razoável sem sacrificar o potencial de crescimento do restante.</p>`
+      },
+      {id:"divida_pt",icon:"🏛",level:"beg",cat:"Ativos",title:"Dívida Pública e Corporativa",
+       summary:"As obrigações de dívida pública e corporativa são empréstimos que faz a governos ou empresas. Oferecem rendimentos previsíveis e estabilidade, especialmente úteis para horizontes curtos ou perfis conservadores.",
+       body:`<p>A <strong>dívida</strong> é o segundo grande bloco dos mercados financeiros, a par da renda variável. Ao comprar uma obrigação, empresta dinheiro ao emissor em troca de pagamentos periódicos de juros (o <strong>cupão</strong>) e da devolução do capital no vencimento.</p><h4 style="color:var(--a2);margin:16px 0 8px;font-family:'IBM Plex Mono'">Dívida Pública</h4><p>Emitida por governos (Tesouro dos EUA, Bund alemão, OT portuguesa). É considerada o investimento mais seguro em termos de incumprimento. As <strong>Obrigações do Tesouro americano</strong> são o ativo livre de risco de referência mundial.</p><div class="formula">Rentabilidade obrigação = Cupão / Preço de mercado × 100</div><div class="example">💡 A OT portuguesa a 10 anos oferece ~3% ao ano. Por cada 10.000€ investidos, recebe ~300€/ano durante 10 anos e recupera os 10.000€ no final.</div><h4 style="color:var(--a3);margin:16px 0 8px;font-family:'IBM Plex Mono'">Dívida Corporativa</h4><p>Emitida por empresas. Paga mais do que a dívida pública porque tem maior risco de incumprimento. Classifica-se em <strong>Investment Grade</strong> (empresas solventes, rating BBB- ou superior) e <strong>High Yield</strong> ou "obrigações de alto risco" (maior rentabilidade, maior risco).</p><p><strong>Relação inversa preço-taxa:</strong> quando as taxas de juro sobem, o preço das obrigações existentes desce. E vice-versa. É o conceito mais importante para compreender obrigações.</p><p>Para o investidor de longo prazo, a dívida funciona como <strong>amortecedor de volatilidade</strong>: quando as ações caem, as obrigações de qualidade tendem a aguentar ou subir, estabilizando a carteira.</p>`
+      },
+      {id:"por_que_investir",icon:"🌱",level:"beg",cat:"Finanças Pessoais",title:"Por que precisamos de investir",
+       summary:"Não investir não é uma opção neutra: é perder dinheiro lentamente. A inflação corrói o poder de compra do seu dinheiro todos os anos. Investir é a ferramenta para o proteger e fazer crescer.",
+       body:`<p>Muitas pessoas acreditam que guardar dinheiro no banco é a opção segura. A realidade matemática é o oposto: <strong>não investir é perder poder de compra de forma silenciosa e constante.</strong></p><h4 style="color:var(--a2);margin:16px 0 8px;font-family:'IBM Plex Mono'">🔥 O problema: a inflação</h4><p>A inflação é o aumento generalizado dos preços. Se a inflação for 3% ao ano e a sua conta bancária render 0,5%, perde 2,5% de poder de compra <em>todos os anos</em>.</p><div class="formula">Perda de poder de compra = Inflação − Rentabilidade da poupança</div><div class="example">💡 Se tem 10.000€ no banco a 0,5% com inflação de 3%, em 10 anos o seu dinheiro só comprará o equivalente a ~7.700€ de hoje. Perdeu 2.300€ sem fazer nada.</div><h4 style="color:var(--a1);margin:16px 0 8px;font-family:'IBM Plex Mono'">📈 A solução: investir o excedente</h4><p>Investir não significa especular nem assumir riscos descontrolados. Significa pôr o seu dinheiro a trabalhar em ativos que historicamente crescem acima da inflação: ações, obrigações, imóveis ou fundos indexados.</p><p>O índice S&P 500 ofereceu uma rentabilidade média de <strong>~10% ao ano</strong> nos últimos 100 anos (~7% descontando inflação). Isso transforma 10.000€ em mais de 67.000€ em 20 anos.</p><div class="example">💡 Não precisa de ser rico para começar. Investir 100€/mês desde os 25 anos, com rentabilidade média de 7%, dá ~240.000€ aos 65. Começar aos 45 com os mesmos 100€/mês: apenas ~52.000€. O tempo é o seu maior ativo.</div><h4 style="color:var(--a3);margin:16px 0 8px;font-family:'IBM Plex Mono'">⚖️ O equilíbrio correto</h4><p>A ordem certa é: <strong>1)</strong> Fundo de emergência (3-6 meses de despesas). <strong>2)</strong> Eliminar dívidas de juro elevado. <strong>3)</strong> Investir o excedente de forma diversificada e adequada ao seu horizonte temporal.</p><p>A questão não é <em>"devo investir?"</em> mas <em>"em que devo investir e com que horizonte?"</em>. Não agir não é financeiramente neutro: é escolher perder.</p>`
+      },
+      {id:"juro_composto",icon:"📊",level:"beg",cat:"Finanças Pessoais",title:"Juro Composto",
+       summary:"O juro composto é ganhar juros sobre os juros anteriores. É o princípio matemático mais poderoso para construir riqueza a longo prazo.",
+       body:`<p>O <strong>juro composto</strong> ocorre quando os rendimentos da sua investimento são reinvestidos e geram por sua vez novos rendimentos. É o efeito bola de neve.</p><div class="formula">Capital final = Capital inicial × (1 + r)^n</div><div class="example">💡 Investe 10.000€ a 8% ao ano. Após 10 anos: 21.589€. Após 30 anos: 100.627€. O tempo é o ativo mais valioso do investidor.</div>`
+      },
+            {id:"que_e_risco_pt",icon:"⚡",level:"beg",cat:"Risco",title:"O que é o Risco",
+       summary:"Em investimento, risco não significa apenas perder dinheiro. Significa incerteza sobre o resultado futuro. Compreender os diferentes tipos de risco é o primeiro passo para os gerir.",
+       body:`<p>O <strong>risco financeiro</strong> é a possibilidade de o resultado real de um investimento diferir do resultado esperado. Nem sempre implica perda: pode significar obter menos do previsto, ou mais. Mas na prática preocupa-nos o lado negativo.</p><h4 style="color:var(--a2);margin:16px 0 8px;font-family:'IBM Plex Mono'">Os principais tipos de risco</h4><p><strong>Risco de mercado:</strong> o preço do seu investimento flutua por fatores macroeconómicos globais. Afeta quase todos os ativos simultaneamente. Não se pode eliminar diversificando, apenas aceitar.</p><p><strong>Risco específico (ou idiossincrático):</strong> risco próprio de uma empresa concreta (escândalo contabilístico, mudança de CEO, perda de contratos). Este reduz-se diversificando em muitas empresas.</p><p><strong>Risco de liquidez:</strong> não conseguir vender o seu ativo quando quer sem assumir uma perda significativa.</p><p><strong>Risco cambial:</strong> se investir em ativos denominados em outra moeda (ex. ações americanas em dólares), as flutuações do câmbio afetam a sua rentabilidade real em euros.</p><p><strong>Risco de inflação:</strong> que o seu investimento cresça menos do que a inflação, perdendo poder de compra real.</p><div class="example">💡 Uma conta à ordem tem risco de mercado quase nulo, mas risco de inflação muito elevado. Uma ação individual tem risco de mercado E risco específico. Um ETF global elimina o risco específico mas mantém o de mercado.</div><p>O objetivo do investidor inteligente não é <strong>eliminar</strong> o risco (impossível) mas <strong>geri-lo</strong>: assumir o risco correspondente ao seu horizonte temporal e eliminar o risco específico desnecessário com diversificação.</p>`
+      },
+      {id:"volatilidade_amiga_pt",icon:"📉",level:"beg",cat:"Risco",title:"Por que a volatilidade é nossa amiga",
+       summary:"A volatilidade assusta. Ver uma carteira cair 30% é psicologicamente devastador. Mas para o investidor de longo prazo, a volatilidade não é o inimigo: é a fonte de oportunidade e a razão pela qual as ações rendem mais do que as obrigações.",
+       body:`<p>A <strong>volatilidade</strong> mede quanto flutua o preço de um ativo. Alta volatilidade = grandes oscilações em pouco tempo. Baixa volatilidade = preço estável. A maioria dos investidores novatos foge dela. O investidor experiente compreende-a como aliada.</p><h4 style="color:var(--a2);margin:16px 0 8px;font-family:'IBM Plex Mono'">Porque rendem mais as ações do que as obrigações?</h4><p>Precisamente porque são mais voláteis. Se as ações tivessem a mesma estabilidade das obrigações do Estado, ninguém assumiria o risco adicional sem compensação extra. A <strong>prémio de risco da renda variável</strong> existe porque os investidores exigem maior rentabilidade em troca de suportar as quedas. Sem volatilidade, não há prémio. Sem prémio, não há rentabilidade superior a longo prazo.</p><div class="example">💡 O S&P 500 caiu mais de 20% em 12 ocasiões desde 1950. Em todas recuperou os máximos. O investidor que aguentou sem vender obteve rentabilidades de 10% ao ano. O que vendeu em pânico cristalizou a perda e perdeu a recuperação.</div><h4 style="color:var(--a1);margin:16px 0 8px;font-family:'IBM Plex Mono'">A volatilidade como oportunidade de compra</h4><p>Para o investidor com aportações periódicas, as quedas são saldos. Se investir 500€ por mês independentemente do mercado (<strong>Dollar Cost Averaging</strong>), nos meses de queda compra mais participações ao mesmo preço. Quando o mercado recupera, tem mais unidades a valorizar-se.</p><p>A volatilidade só é inimiga se <strong>precisar do dinheiro no curto prazo</strong>. Por isso o horizonte temporal é tudo: um investidor com 20 anos pela frente deveria ver uma queda de 40% como oportunidade. Um que se reforma em 2 anos, como risco real.</p><div class="example">💡 Warren Buffett: "O mercado de ações é um mecanismo para transferir riqueza dos impacientes para os pacientes." A volatilidade é o pedágio que os mercados cobram aos impacientes.</div>`
+      },
+      {id:"dividend_yield_pt",icon:"💸",level:"beg",cat:"Métricas",title:"Dividend Yield",
+       summary:"O dividend yield indica que percentagem do seu investimento recupera cada ano em dividendos. É a rentabilidade visível do acionista.",
+       body:`<p>O <strong>Dividend Yield</strong> mede o dividendo anual pago por uma empresa em relação ao seu preço em bolsa.</p><div class="formula">Dividend Yield = (Dividendo anual por ação / Preço da ação) × 100</div><div class="example">💡 Se o SAN cotiza a 5€ e paga 0,21€ de dividendo anual, o yield é 4,2%. Por cada 1.000€ investidos, recebe 42€/ano.</div><p>Um yield muito alto pode ser uma armadilha. Analise sempre a sustentabilidade pelo <strong>Payout Ratio</strong>.</p>`
+      },
+      {id:"per_pt",icon:"🔢",level:"int",cat:"Valorização",title:"PER (Price-to-Earnings Ratio)",
+       summary:"O PER mede quantos anos de lucros está a pagar por uma ação. É o rácio de valorização mais utilizado no mercado.",
+       body:`<p>O <strong>PER</strong> indica quantas vezes está a pagar os lucros anuais da empresa.</p><div class="formula">PER = Preço da ação / Lucro por ação (LPA)</div><div class="example">💡 Se a AAPL cotiza a 220$ e o LPA é 7$, o PER é 31,4x. Está a pagar 31 anos de lucros atuais.</div><p>Compare sempre com o histórico da empresa e com o setor. Um PER de 20x é caro para um banco mas barato para tecnologia de alto crescimento.</p>`
+      },
+      {id:"moat_pt",icon:"🏰",level:"int",cat:"Estratégias",title:"Fosso Económico (Moat)",
+       summary:"O moat é a vantagem competitiva duradoura que protege uma empresa dos seus concorrentes. O conceito central do investimento em qualidade.",
+       body:`<p>O <strong>moat</strong> foi popularizado por Warren Buffett. Uma empresa com moat mantém as suas margens durante anos sem que os concorrentes a possam atacar facilmente.</p><p>Tipos: <strong>Marca</strong> (Coca-Cola), <strong>Custos de mudança</strong> (Microsoft), <strong>Efeito rede</strong> (Visa), <strong>Vantagem de custos</strong> (Amazon), <strong>Ativos intangíveis</strong> (patentes).</p><div class="example">💡 O CUDA da NVIDIA tem 4 milhões de programadores. Mudar para um concorrente exigiria reescrever anos de trabalho. Isso é um moat poderoso.</div>`
+      },
+      {id:"fcf_pt",icon:"💰",level:"adv",cat:"Métricas",title:"Free Cash Flow (FCF)",
+       summary:"O FCF é o dinheiro real que uma empresa gera após pagar os seus investimentos. É a métrica mais difícil de manipular contabilisticamente.",
+       body:`<p>O <strong>Free Cash Flow</strong> é o dinheiro disponível para os acionistas após pagar despesas operacionais e investimentos (CAPEX).</p><div class="formula">FCF = Fluxo de caixa operacional − CAPEX</div><div class="example">💡 A Apple gerou ~110.000M$ de FCF em 2024. Esse dinheiro vai para dividendos, recompras, aquisições ou permanece em caixa.</div><p>O rácio <strong>P/FCF</strong> complementa o PER eliminando distorções contabilísticas.</p>`
+      },
+      {id:"asset_alloc_pt",icon:"🎯",level:"adv",cat:"Estratégias",title:"Asset Allocation",
+       summary:"O asset allocation é a distribuição estratégica do capital entre classes de ativos. É a decisão que mais impacta o rendimento a longo prazo.",
+       body:`<p>O <strong>asset allocation</strong> determina quanto da sua carteira vai para ações, obrigações, imobiliário e liquidez. Estudos históricos sugerem que ~90% da variabilidade do rendimento se explica pelo asset allocation.</p><div class="example">💡 Não existe o asset allocation perfeito. A chave é escolher um que consiga manter durante crises sem entrar em pânico. A carteira que tolera psicologicamente supera sempre a ótima no papel que abandona quando cai 40%.</div>`
+      },
+    ]
+  },
+  en: {
+    title: "FINANCIAL ACADEMY",
+    subtitle: "Learn to invest with confidence · From beginner to advanced",
+    searchPlaceholder: "Search concept... (e.g. P/E, dividend, ETF)",
+    levels: [{id:"beg",label:"🟢 Beginner"},{id:"int",label:"🟡 Intermediate"},{id:"adv",label:"🔴 Advanced"}],
+    categories: ["All","Assets","Personal Finance","Valuation","Metrics","Strategies","Risk"],
+    readMore: "▸ Read more",
+    closeBtn: "✕ Close",
+    progressLabel: "PROGRESS",
+    conceptsLabel: (n,t) => `${n} of ${t} concepts`,
+    concepts: [
+      {id:"stock_en",icon:"📈",level:"beg",cat:"Assets",title:"Stock / Share",
+       summary:"A stock represents a small ownership stake in a company. As a shareholder, you participate in its profits through dividends and price appreciation.",
+       body:`<p>A <strong>stock (or share)</strong> represents a fraction of a company's equity capital. If a company is worth $1,000,000 and issues 1,000,000 shares, each share is worth $1. By buying shares, you become a co-owner proportional to your holdings.</p><p>As a shareholder you earn money in two ways: <strong>dividends</strong> (a portion of profits paid out periodically) and <strong>capital appreciation</strong> if the company grows over time.</p><div class="example">💡 If you buy 10 AAPL shares at $200 and they rise to $250, you gain $500. If the company also pays $1 per share in dividends, you receive an extra $10.</div>`
+      },
+      {id:"etf_en",icon:"🧺",level:"beg",cat:"Assets",title:"ETF",
+       summary:"An ETF is a basket of assets (stocks, bonds...) that trades on a stock exchange like a single share. It enables instant diversification with one purchase.",
+       body:`<p>An <strong>ETF (Exchange-Traded Fund)</strong> tracks an index (like the S&P 500) or a sector. When you buy one, you invest in all the companies it contains simultaneously.</p><p>Key advantages: <strong>instant diversification</strong>, <strong>low cost</strong> (annual fees of 0.03–0.20%) and <strong>liquidity</strong> (buy and sell any time the market is open).</p><div class="example">💡 Buying 1 share of VUSA (Vanguard S&P 500 ETF) gives you exposure to the 500 largest US companies at once.</div>`
+      },
+            {id:"gold_en",icon:"🥇",level:"beg",cat:"Assets",title:"Gold",
+       summary:"Gold is the ultimate safe-haven asset. It protects against inflation, financial crises and currency devaluation. It generates no income, but plays a unique role in any portfolio.",
+       body:`<p><strong>Gold</strong> has been a store of value for over 5,000 years. Unlike stocks or bonds, it pays no dividends or interest — but it also cannot go bankrupt or fall to zero. Its value rests on physical scarcity and universal trust.</p><h4 style="color:var(--a2);margin:16px 0 8px;font-family:'IBM Plex Mono'">Why Hold Gold?</h4><p>Gold has a <strong>low or negative correlation</strong> with equities: when stock markets fall sharply (2008 crisis, COVID 2020), gold tends to rise or hold steady. It acts as insurance against extreme scenarios: banking crises, hyperinflation, geopolitical conflict.</p><div class="example">💡 In 2008, the S&P 500 fell 38%. Gold rose +5.5%. In March 2020, the S&P fell 34%; gold hit all-time highs in August. It is not a growth asset — it is a protection asset.</div><h4 style="color:var(--a1);margin:16px 0 8px;font-family:'IBM Plex Mono'">How to Invest in Gold?</h4><p><strong>Physical gold ETFs</strong> (like IGLN or SGLN): the most efficient approach for retail investors. The ETF is backed by real bullion in vaults. <strong>Physical gold</strong> (coins, bars): more control but storage costs. <strong>Gold mining stocks</strong>: higher potential but also higher operational risk.</p><p>For a long-term investor, a <strong>5–10% allocation</strong> to gold provides reasonable hedging without sacrificing the growth potential of the rest of the portfolio.</p>`
+      },
+      {id:"bonds_en",icon:"🏛",level:"beg",cat:"Assets",title:"Government & Corporate Debt",
+       summary:"Government and corporate bonds are loans you make to governments or companies. They offer predictable income and stability — especially useful for shorter horizons or conservative profiles.",
+       body:`<p><strong>Debt</strong> is the second great pillar of financial markets, alongside equities. When you buy a bond, you lend money to the issuer in exchange for periodic interest payments (the <strong>coupon</strong>) and the return of your principal at maturity.</p><h4 style="color:var(--a2);margin:16px 0 8px;font-family:'IBM Plex Mono'">Government Bonds</h4><p>Issued by governments (US Treasury, German Bund, UK Gilt). Considered the safest investments in terms of default risk, particularly when the issuer controls its own currency. <strong>US Treasury bonds</strong> are the global risk-free rate benchmark.</p><div class="formula">Bond yield = Annual coupon / Market price × 100</div><div class="example">💡 A 10-year US Treasury yields ~4.3% (Feb 2025). For every £10,000 invested, you receive ~£430/year for 10 years, then get your £10,000 back.</div><h4 style="color:var(--a3);margin:16px 0 8px;font-family:'IBM Plex Mono'">Corporate Bonds</h4><p>Issued by companies. Pay more than government bonds because they carry higher default risk. Classified as <strong>Investment Grade</strong> (creditworthy firms, BBB- rating or above) and <strong>High Yield</strong> or "junk bonds" (higher return, higher risk).</p><p><strong>Inverse price-rate relationship:</strong> when interest rates rise, existing bond prices fall. And vice versa. This is the single most important concept for understanding bonds.</p><p>For the long-term investor, debt works as a <strong>volatility buffer</strong>: when equities fall, quality bonds tend to hold or rise, stabilising the overall portfolio.</p>`
+      },
+      {id:"why_invest_en",icon:"🌱",level:"beg",cat:"Personal Finance",title:"Why We Need to Invest",
+       summary:"Not investing is not a neutral choice — it's losing money slowly. Inflation erodes your purchasing power every year. Investing is the tool to protect and grow it.",
+       body:`<p>Many people believe that keeping money in the bank is the safe option. The mathematical reality is the opposite: <strong>not investing means losing purchasing power silently and consistently.</strong></p><h4 style="color:var(--a2);margin:16px 0 8px;font-family:'IBM Plex Mono'">🔥 The Problem: Inflation</h4><p>Inflation is the general rise in prices over time. If inflation runs at 3% per year and your bank account yields 0.5%, you lose 2.5% of purchasing power <em>every year</em>.</p><div class="formula">Loss of purchasing power = Inflation − Savings return</div><div class="example">💡 If you have £10,000 in the bank at 0.5% with 3% inflation, in 10 years that money will only buy the equivalent of ~£7,700 in today's terms. You've lost £2,300 by doing nothing.</div><h4 style="color:var(--a1);margin:16px 0 8px;font-family:'IBM Plex Mono'">📈 The Solution: Put Your Surplus to Work</h4><p>Investing doesn't mean speculating or taking uncontrolled risks. It means putting your money in assets that have historically grown faster than inflation: stocks, bonds, real estate, or index funds.</p><p>The S&P 500 has delivered an average return of <strong>~10% per year</strong> over the last 100 years (~7% after inflation). That turns £10,000 into over £67,000 in 20 years.</p><div class="example">💡 You don't need to be wealthy to start. Investing £100/month from age 25, at a 7% average return, gives you ~£240,000 at 65. Starting at 45 with the same £100/month: only ~£52,000. Time is your greatest asset.</div><h4 style="color:var(--a3);margin:16px 0 8px;font-family:'IBM Plex Mono'">⚖️ Getting the Balance Right</h4><p>The right order is: <strong>1)</strong> Emergency fund (3–6 months of expenses). <strong>2)</strong> Pay off high-interest debt. <strong>3)</strong> Invest your surplus in a diversified, time-appropriate way.</p><p>The question isn't <em>"should I invest?"</em> — it's <em>"what should I invest in, and for how long?"</em>. Inaction is not a financially neutral choice: it's choosing to lose, slowly.</p>`
+      },
+      {id:"compound_en",icon:"📊",level:"beg",cat:"Personal Finance",title:"Compound Interest",
+       summary:"Compound interest means earning interest on your previous interest. It is the most powerful mathematical principle for building long-term wealth.",
+       body:`<p><strong>Compound interest</strong> occurs when investment returns are reinvested and generate further returns. It is the snowball effect.</p><div class="formula">Final Capital = Initial Capital × (1 + r)^n<br/>where r = annual return, n = years</div><div class="example">💡 Invest €10,000 at 8% p.a. After 10 years: €21,589. After 30 years: €100,627. Time is the investor's most valuable asset.</div>`
+      },
+      {id:"dividend_yield_en",icon:"💸",level:"beg",cat:"Metrics",title:"Dividend Yield",
+       summary:"Dividend yield shows what percentage of your investment you recover each year as dividends. It is the shareholder's visible return.",
+       body:`<p><strong>Dividend Yield</strong> measures the annual dividend a company pays relative to its stock price.</p><div class="formula">Dividend Yield = (Annual dividend per share / Share price) × 100</div><div class="example">💡 If SAN trades at €5 and pays €0.21 in annual dividends, its yield is 4.2%. For every €1,000 invested, you receive €42/year.</div><p>A very high yield can be a trap. Always check dividend sustainability by looking at the <strong>Payout Ratio</strong>.</p>`
+      },
+      {id:"pe_ratio",icon:"🔢",level:"int",cat:"Valuation",title:"P/E Ratio (PER)",
+       summary:"The P/E ratio measures how many years of earnings you are paying for a stock. It is the most widely used valuation metric in the market.",
+       body:`<p>The <strong>P/E (Price-to-Earnings) ratio</strong> shows how many times you are paying the company's annual earnings.</p><div class="formula">P/E = Share Price / Earnings Per Share (EPS)</div><div class="example">💡 If AAPL trades at $220 with EPS of $7, P/E = 31.4x. You are paying 31 years of current earnings.</div><p>Always compare to the <strong>company's own historical P/E</strong> and to its <strong>sector peers</strong>. A P/E of 20x is expensive for a bank but cheap for a high-growth tech company.</p>`
+      },
+      {id:"moat_en",icon:"🏰",level:"int",cat:"Strategies",title:"Economic Moat",
+       summary:"An economic moat is the durable competitive advantage that protects a company from competitors, like medieval moats protected castles.",
+       body:`<p>The <strong>moat</strong> concept was popularized by Warren Buffett. A company with a wide moat can maintain its margins and market share for years without competitors easily taking them away.</p><p>Main types: <strong>Brand</strong> (Coca-Cola), <strong>Switching costs</strong> (Microsoft Office), <strong>Network effect</strong> (Visa), <strong>Cost advantage</strong> (Amazon), <strong>Intangible assets</strong> (patents, licenses).</p><div class="example">💡 NVIDIA's CUDA: 4 million developers write code for CUDA. Switching to AMD would require rewriting years of work. That is a powerful moat.</div>`
+      },
+      {id:"payout_en",icon:"📤",level:"int",cat:"Metrics",title:"Payout Ratio",
+       summary:"The payout ratio shows what percentage of its earnings a company distributes as dividends. It determines whether the dividend is sustainable.",
+       body:`<p>The <strong>Payout Ratio</strong> is the percentage of net earnings paid out as dividends.</p><div class="formula">Payout Ratio = (Dividend per share / EPS) × 100</div><p>A payout of <strong>40–60%</strong> is generally healthy. Above <strong>80%</strong> starts to be risky; above <strong>100%</strong> the company is paying out more than it earns — unsustainable.</p><div class="example">💡 If SAN has EPS of €0.78 and pays €0.40 in dividends, payout is 51%. It retains 49% to strengthen its balance sheet and grow.</div>`
+      },
+            {id:"what_is_risk_en",icon:"⚡",level:"beg",cat:"Risk",title:"What is Risk?",
+       summary:"In investing, risk doesn't just mean losing money. It means uncertainty about future outcomes. Understanding the different types of risk is the first step to managing them.",
+       body:`<p><strong>Financial risk</strong> is the possibility that the actual return on an investment differs from the expected return. It doesn't always mean a loss — it can mean getting less than anticipated, or more. But in practice, we care most about the downside.</p><h4 style="color:var(--a2);margin:16px 0 8px;font-family:'IBM Plex Mono'">The Main Types of Risk</h4><p><strong>Market risk:</strong> your investment's price fluctuates due to broad macroeconomic forces. It affects almost all assets simultaneously. You cannot diversify it away — you can only accept it.</p><p><strong>Specific risk (idiosyncratic risk):</strong> risk unique to a particular company (accounting fraud, CEO departure, contract loss). This risk CAN be reduced by diversifying across many holdings.</p><p><strong>Liquidity risk:</strong> the inability to sell your asset when you want without taking a significant loss. A flat in an illiquid market carries far more liquidity risk than a large-cap stock.</p><p><strong>Currency risk:</strong> if you invest in assets denominated in another currency (e.g. US stocks in dollars), exchange rate moves affect your real return in your home currency.</p><p><strong>Inflation risk:</strong> your investment grows more slowly than inflation, losing real purchasing power even if your nominal balance increases.</p><div class="example">💡 A savings account has near-zero market risk but very high inflation risk. A single stock carries both market AND specific risk. A global ETF eliminates specific risk but retains market risk.</div><p>The intelligent investor's goal is not to <strong>eliminate</strong> risk (impossible) but to <strong>manage</strong> it: accept the market risk appropriate for your time horizon, and eliminate unnecessary specific risk through diversification.</p>`
+      },
+      {id:"volatility_friend_en",icon:"📉",level:"beg",cat:"Risk",title:"Why Volatility is Our Friend",
+       summary:"Volatility is frightening. Watching a portfolio drop 30% is psychologically devastating. But for the long-term investor, volatility is not the enemy — it is the source of opportunity and the reason equities outperform bonds over time.",
+       body:`<p><strong>Volatility</strong> measures how much an asset's price fluctuates. High volatility = large swings in a short time. Low volatility = stable price. Most novice investors flee from it. Experienced investors understand it as an ally.</p><h4 style="color:var(--a2);margin:16px 0 8px;font-family:'IBM Plex Mono'">Why Do Equities Outperform Bonds?</h4><p>Precisely <em>because</em> they are more volatile. If stocks had the same stability as government bonds, no rational investor would accept the additional risk without extra compensation. The <strong>equity risk premium</strong> exists because investors demand higher returns in exchange for enduring drawdowns. No volatility → no premium → no superior long-term return.</p><div class="example">💡 The S&P 500 has fallen more than 20% on 12 occasions since 1950. It recovered its highs every single time. The investor who held on earned ~10% per year. The one who sold in panic crystallised the loss and missed the recovery.</div><h4 style="color:var(--a1);margin:16px 0 8px;font-family:'IBM Plex Mono'">Volatility as a Buying Opportunity</h4><p>For an investor making regular contributions, market falls are discounts. Investing a fixed amount each month regardless of market conditions (<strong>pound/dollar-cost averaging</strong>) means you buy more units when prices are low. When the market recovers, you hold more units that have appreciated.</p><p>Volatility is only your enemy if you <strong>need the money in the short term</strong>. That is why time horizon is everything: an investor with 20 years ahead should view a 40% drawdown as an opportunity. One retiring in 2 years should see it as real risk.</p><div class="example">💡 Warren Buffett: "The stock market is a device for transferring money from the impatient to the patient." Volatility is the toll the market charges for impatience.</div>`
+      },
+      {id:"dcf_en",icon:"🧮",level:"adv",cat:"Valuation",title:"DCF (Discounted Cash Flow)",
+       summary:"DCF is the gold-standard fundamental valuation method. It calculates the present value of all future cash flows a company will generate.",
+       body:`<p><strong>DCF (Discounted Cash Flow)</strong> is the most rigorous valuation method. A company is worth today the sum of all the cash flows it will generate in the future, discounted back to present value.</p><div class="formula">Value = FCF₁/(1+r)¹ + FCF₂/(1+r)² + ... + Terminal Value/(1+r)^n</div><div class="example">💡 The problem with DCF is its sensitivity: changing the discount rate from 8% to 9% can reduce the valuation by 20–30%. That is why value investors always demand a margin of safety.</div><p>DCF gives a range of possibilities, not a single answer. Intellectual honesty is essential: the inputs are estimates, not facts.</p>`
+      },
+      {id:"fcf_en",icon:"💰",level:"adv",cat:"Metrics",title:"Free Cash Flow (FCF)",
+       summary:"FCF is the real cash a company generates after paying for its investments. It is the hardest metric to manipulate through accounting tricks.",
+       body:`<p><strong>Free Cash Flow</strong> is the cash available to shareholders after the company has paid operating expenses and capital expenditure (CAPEX).</p><div class="formula">FCF = Operating Cash Flow − CAPEX</div><div class="example">💡 Apple generated ~$110B in FCF in 2024. That cash can go to dividends, share buybacks, acquisitions or sit on the balance sheet.</div><p>The <strong>P/FCF ratio</strong> complements the P/E by removing accounting distortions.</p>`
+      },
+      {id:"asset_alloc_en",icon:"🎯",level:"adv",cat:"Strategies",title:"Asset Allocation",
+       summary:"Asset allocation is the strategic distribution of capital across asset classes. It is the investment decision that most impacts long-term performance.",
+       body:`<p><strong>Asset allocation</strong> determines what percentage of your portfolio goes to stocks, bonds, real estate and cash. Academic studies suggest ~90% of long-term return variability is explained by asset allocation, not stock selection.</p><div class="example">💡 There is no perfect asset allocation. The key is choosing one you can stick with during crises without panicking. The portfolio you can tolerate psychologically always beats the theoretically optimal one you abandon when it drops 40%.</div>`
+      },
+    ]
+  }
+};
+
+// ══════════════════════════════════════════════════════════
+// ACADEMY STATE & LOGIC
+// ══════════════════════════════════════════════════════════
+let acLevel = 'beg';
+let acCat   = null; // null = all
+let acSearch = '';
+let acModal  = null; // currently open concept id
+let acRead   = new Set(JSON.parse(localStorage.getItem('axiosiq_read')||'[]'));
+
+function saveRead(){ try{ localStorage.setItem('axiosiq_read', JSON.stringify([...acRead])); }catch(_){} }
+
+function renderAcademy(){
+  const a = ACADEMY[lang];
+  const wrap = document.getElementById('academy-content');
+  if(!wrap) return;
+
+  // Filter concepts
+  let concepts = a.concepts.filter(c => {
+    const matchLevel = c.level === acLevel;
+    const matchCat   = !acCat || acCat === a.categories[0] || c.cat === acCat;
+    const matchSearch = !acSearch || c.title.toLowerCase().includes(acSearch) || c.summary.toLowerCase().includes(acSearch);
+    return matchLevel && matchCat && matchSearch;
+  });
+
+  const totalInLevel = a.concepts.filter(c => c.level === acLevel).length;
+  const readInLevel  = a.concepts.filter(c => c.level === acLevel && acRead.has(c.id)).length;
+  const progPct      = totalInLevel ? Math.round((readInLevel / totalInLevel) * 100) : 0;
+  const levelColor   = acLevel==='beg'?'var(--a1)':acLevel==='int'?'var(--a2)':'var(--a4)';
+
+  const tagClass = lvl => lvl==='beg'?'tag-beg':lvl==='int'?'tag-int':'tag-adv';
+  const tagLabel = lvl => a.levels.find(l=>l.id===lvl)?.label.replace(/🟢|🟡|🔴 /g,'') || lvl;
+
+  wrap.innerHTML = `
+    <!-- HEADER -->
+    <div class="ac-header">
+      <div class="ac-title">${a.title}</div>
+      <div class="ac-subtitle">${a.subtitle}</div>
+    </div>
+
+    <!-- LEVEL SELECTOR -->
+    <div class="level-sw">
+      ${a.levels.map(l=>`
+        <button class="level-btn ${acLevel===l.id?'active-'+l.id:''}" onclick="setAcLevel('${l.id}')">${l.label}</button>
+      `).join('')}
+    </div>
+
+    <!-- PROGRESS -->
+    <div class="ac-progress">
+      <span class="ac-prog-label">${a.progressLabel}</span>
+      <div class="ac-prog-bar"><div class="ac-prog-fill" style="width:${progPct}%;background:${levelColor}"></div></div>
+      <span class="ac-prog-count">${readInLevel}/${totalInLevel} · ${progPct}%</span>
+    </div>
+
+    <!-- SEARCH -->
+    <div class="ac-search">
+      <span class="ac-search-icon">🔍</span>
+      <input class="ac-search-in" placeholder="${a.searchPlaceholder}" value="${acSearch}"
+        oninput="acSearch=this.value.toLowerCase();renderAcademy()"/>
+    </div>
+
+    <!-- CATEGORY TABS -->
+    <div class="cat-tabs">
+      ${a.categories.map(cat=>`
+        <button class="cat-btn ${(!acCat&&cat===a.categories[0])||(acCat===cat)?'active':''}"
+          onclick="setAcCat('${cat}')">${cat}</button>
+      `).join('')}
+    </div>
+
+    <!-- COUNT -->
+    <div class="ac-count">${a.conceptsLabel(concepts.length, a.concepts.filter(c=>c.level===acLevel).length)}</div>
+
+    <!-- CONCEPTS GRID -->
+    <div class="concepts-grid">
+      ${concepts.length === 0
+        ? `<div style="color:var(--tx3);font-family:'IBM Plex Sans';font-size:13px;padding:20px 0;grid-column:1/-1">${lang==='en'?'No concepts found for this search.':lang==='pt'?'Nenhum conceito encontrado.':'No se encontraron conceptos para esta búsqueda.'}</div>`
+        : concepts.map(c => `
+          <div class="concept-card${acRead.has(c.id)?' read':''}" onclick="openModal('${c.id}')" style="${acRead.has(c.id)?'border-color:rgba(0,212,170,.2);':''}" >
+            <div class="cc-head">
+              <span class="cc-icon">${c.icon}</span>
+              <span class="cc-title">${c.title}</span>
+              <span class="cc-tag ${tagClass(c.level)}">${tagLabel(c.level)}</span>
+              ${acRead.has(c.id)?`<span style="font-size:10px;color:var(--a1);margin-left:6px">✓</span>`:''}
+            </div>
+            <div class="cc-summary">${c.summary}</div>
+            <div class="cc-more">${a.readMore}</div>
+          </div>
+        `).join('')}
+    </div>
+  `;
+}
+
+function setAcLevel(l){ acLevel=l; acCat=null; renderAcademy(); }
+function setAcCat(cat){
+  const a = ACADEMY[lang];
+  acCat = (cat === a.categories[0]) ? null : cat;
+  renderAcademy();
+}
+
+function openModal(id){
+  const a = ACADEMY[lang];
+  const concept = a.concepts.find(c=>c.id===id);
+  if(!concept) return;
+
+  // Mark as read
+  acRead.add(id);
+  saveRead();
+
+  const allFiltered = a.concepts.filter(c => c.level === acLevel);
+  const idx = allFiltered.findIndex(c=>c.id===id);
+  const tagClass = concept.level==='beg'?'tag-beg':concept.level==='int'?'tag-int':'tag-adv';
+
+  document.getElementById('modal-overlay').classList.remove('hidden');
+  document.getElementById('modal-overlay').innerHTML = `
+    <div class="modal">
+      <button class="modal-close" onclick="closeModal()">${a.closeBtn}</button>
+      <div class="modal-head">
+        <span class="modal-icon">${concept.icon}</span>
+        <span class="modal-title">${concept.title}</span>
+        <span class="modal-level"><span class="cc-tag ${tagClass}" style="display:inline-block">${a.levels.find(l=>l.id===concept.level)?.label||''}</span></span>
+      </div>
+      <div class="modal-body">${concept.body}</div>
+      <div class="modal-nav">
+        <button class="modal-nav-btn" onclick="navModal(-1)" ${idx===0?'disabled style="opacity:.3"':''}>← ${lang==='en'?'Previous':lang==='pt'?'Anterior':'Anterior'}</button>
+        <span class="modal-counter">${idx+1} / ${allFiltered.length}</span>
+        <button class="modal-nav-btn" onclick="navModal(1)" ${idx===allFiltered.length-1?'disabled style="opacity:.3"':''}>→ ${lang==='en'?'Next':lang==='pt'?'Seguinte':'Siguiente'}</button>
+      </div>
+    </div>
+  `;
+  acModal = id;
+  document.body.style.overflow='hidden';
+}
+
+function navModal(dir){
+  const a = ACADEMY[lang];
+  const allFiltered = a.concepts.filter(c => c.level === acLevel);
+  const idx = allFiltered.findIndex(c=>c.id===acModal);
+  const next = allFiltered[idx+dir];
+  if(next) openModal(next.id);
+}
+
+function closeModal(){
+  document.getElementById('modal-overlay').classList.add('hidden');
+  document.body.style.overflow='';
+  acModal = null;
+  renderAcademy(); // refresh read state
+}
+
+// Close modal on overlay click
+document.addEventListener('click', e => {
+  if(e.target.id==='modal-overlay') closeModal();
+});
+document.addEventListener('keydown', e => {
+  if(e.key==='Escape') closeModal();
+  if(e.key==='ArrowRight') navModal(1);
+  if(e.key==='ArrowLeft') navModal(-1);
+});
+
+// ══════════════════════════════════════════════════════════
+// TABS
+// ══════════════════════════════════════════════════════════
+let activeTab = 'analyzer';
+function showTab(tab){
+  activeTab = tab;
+  document.getElementById('tab-analyzer').classList.toggle('active', tab==='analyzer');
+  document.getElementById('tab-academy').classList.toggle('active', tab==='academy');
+  document.getElementById('analyzer-content').style.display = tab==='analyzer' ? 'block' : 'none';
+  const ac = document.getElementById('academy-content');
+  if(tab==='academy'){
+    ac.style.display='block';
+    renderAcademy();
+  } else {
+    ac.style.display='none';
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// DEMO
+// ══════════════════════════════════════════════════════════
+function loadDemo(ticker){
+  const data = DEMO_DATA[ticker];
+  if(!data) return;
+  clearError();
+  document.getElementById('ticker-input').value = ticker;
+  currentResult = data;
+  renderResults(data, false);
+  // Scroll to results
+  setTimeout(()=>{ document.getElementById('results').scrollIntoView({behavior:'smooth', block:'start'}); }, 100);
+}
+
+function updateDemoBoxVisibility(){
+  const hasKey = !!loadApiKey();
+  const demoBox = document.getElementById('demo-box');
+  if(demoBox) demoBox.style.display = hasKey ? 'none' : 'block';
+}
+
+// ══════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════
+(function init(){
+  setProvider(aiProvider); // restore saved provider state & UI
+  updateDemoBoxVisibility();
+})();
+</script>
+</body>
+</html>
